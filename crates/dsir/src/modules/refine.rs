@@ -170,6 +170,7 @@ mod tests {
     }
 
     #[derive(Signature, Clone, Debug)]
+    #[allow(dead_code)]
     struct Plain {
         #[input]
         prompt: String,
