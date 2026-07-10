@@ -1,0 +1,11 @@
+# NOTICE
+
+This product includes software adapted from DSRs (DSPy Rust):
+
+  https://github.com/krypticmouse/DSRs
+
+Copyright contributors to the DSRs project.
+Licensed under the Apache License, Version 2.0.
+
+The `dsir` project vendors and modifies selected source from that repository.
+It does not depend on the crates.io `dspy-rs` package at build or runtime.

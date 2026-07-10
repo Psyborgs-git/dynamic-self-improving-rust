@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/*",
+    "vendor/baml/crates/*",
+]
+
+[workspace.package]
+license = "Apache-2.0"
+edition = "2024"
+
+[patch.crates-io]
+# Keep Facet pin in sync with vendored DSRs (required for optimizer leaf discovery).
+facet = { git = "https://github.com/darinkishore/facet", rev = "cc8613c97cd1ec03e63659db34a947989b45c8a5" }
+facet-reflect = { git = "https://github.com/darinkishore/facet", rev = "cc8613c97cd1ec03e63659db34a947989b45c8a5" }
