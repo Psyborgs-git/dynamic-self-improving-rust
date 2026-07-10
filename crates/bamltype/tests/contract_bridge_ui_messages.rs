@@ -30,8 +30,11 @@ fn contract_ui_error_messages_match_frozen_fixtures() {
             .and_then(|name| name.to_str())
             .expect("stderr file name")
             .to_string();
-        let content = fs::read(&path).expect("read stderr fixture");
-        hashes.insert(file_name, sha256_hex(&content));
+        // Normalize CRLF so fixture hashes are stable across Windows and Unix checkouts.
+        let content = fs::read_to_string(&path)
+            .expect("read stderr fixture")
+            .replace("\r\n", "\n");
+        hashes.insert(file_name, sha256_hex(content.as_bytes()));
     }
 
     assert!(!hashes.is_empty(), "no stderr fixtures discovered");
