@@ -12,7 +12,7 @@ use crate as dsrs;
 use crate::core::{DynPredictor, Module, PredictAccessorFns, PredictState, Signature};
 use crate::data::example::Example as RawExample;
 use crate::{
-    BamlType, BamlValue, CallMetadata, Chat, ChatAdapter, GLOBAL_SETTINGS, LmError, LmUsage,
+    BamlType, BamlValue, CallMetadata, Chat, GLOBAL_SETTINGS, LmError, LmUsage,
     PredictError, Predicted, Prediction, SignatureSchema,
 };
 
@@ -229,7 +229,7 @@ impl<S: Signature> Predict<S> {
     where
         S::Input: BamlType,
     {
-        let chat_adapter = ChatAdapter;
+        let chat_adapter = crate::core::settings::chat_adapter();
         let system = match chat_adapter
             .format_system_message_typed_with_instruction::<S>(self.instruction_override.as_deref())
         {
@@ -327,7 +327,7 @@ impl<S: Signature> Predict<S> {
             None
         };
 
-        let chat_adapter = ChatAdapter;
+        let chat_adapter = crate::core::settings::chat_adapter();
         let raw_response = output.content().to_string();
         let lm_usage = usage.clone();
 

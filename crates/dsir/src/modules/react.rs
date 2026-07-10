@@ -103,10 +103,7 @@ where
 
         for tool in &self.tools {
             let candidate = tool.name();
-            if candidate.eq_ignore_ascii_case(normalized)
-                || normalized.contains(&candidate)
-                || candidate.contains(normalized)
-            {
+            if tool_name_matches(&candidate, normalized) {
                 return match tool.call(args).await {
                     Ok(result) => result,
                     Err(err) => format!("tool_error: {err}"),
@@ -372,5 +369,23 @@ where
 
     fn call<'a>(&'a self, args: String) -> WasmBoxedFuture<'a, Result<String, ToolError>> {
         Box::pin(async move { Ok((self.handler)(args).await) })
+    }
+}
+
+fn tool_name_matches(candidate: &str, action: &str) -> bool {
+    candidate.eq_ignore_ascii_case(action)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tool_name_matches_requires_exact_equality() {
+        assert!(tool_name_matches("search", "search"));
+        assert!(tool_name_matches("Search", "search"));
+        assert!(!tool_name_matches("search", "search_extended"));
+        assert!(!tool_name_matches("search_extended", "search"));
+        assert!(!tool_name_matches("search", "use search tool"));
     }
 }
