@@ -1,7 +1,6 @@
 use anyhow::{Result, anyhow};
 use bon::Builder;
 
-use crate::core::DynPredictor;
 use crate::evaluate::{TypedMetric, average_score};
 use crate::optimizer::{
     Optimizer, evaluate_module_with_metric, predictor_names, with_named_predictor,
@@ -25,10 +24,10 @@ use crate::{Facet, Module, Signature};
 ///   exploration but proportionally more LM calls. Must be > 1.
 /// - **`depth`** (default: 3) — optimization rounds. Each round refines the previous
 ///   best instruction. Diminishing returns beyond ~5.
-/// - **`init_temperature`** (default: 1.4) — **currently unused.** Reserved for LM-generated
-///   candidate diversity. Setting this has no effect.
+/// - **`init_temperature`** (default: 1.4) — reserved for sampling diversity when using
+///   a dedicated prompt model.
 /// - **`prompt_model`** — optional separate LM for generating candidate instructions.
-///   Falls back to the global LM if unset.
+///   Falls back to the global LM if unset; if neither is available, uses heuristic variants.
 ///
 /// # Cost
 ///
@@ -47,8 +46,7 @@ pub struct COPRO {
     /// Optimization rounds — each refines the previous best.
     #[builder(default = 3)]
     pub depth: usize,
-    /// **Currently unused.** Reserved for controlling LM-generated candidate diversity.
-    /// Setting this has no effect.
+    /// Reserved for controlling LM-generated candidate diversity.
     #[builder(default = 1.4)]
     pub init_temperature: f32,
     /// Whether to track per-round statistics.
@@ -121,32 +119,32 @@ impl COPRO {
         }
     }
 
-    fn candidate_instructions(
+    async fn propose_candidates<M>(
         &self,
+        module: &mut M,
+        predictor_name: &str,
         base_instruction: &str,
-        predictor: &dyn DynPredictor,
-        depth: usize,
-    ) -> Vec<String> {
-        let mut candidates = Vec::with_capacity(self.breadth.max(1));
-        candidates.push(base_instruction.to_string());
+    ) -> Result<Vec<String>>
+    where
+        M: for<'a> Facet<'a>,
+    {
+        let output_hint = with_named_predictor(module, predictor_name, |predictor| {
+            Ok(predictor
+                .schema()
+                .output_fields()
+                .iter()
+                .map(|f| f.lm_name.to_string())
+                .collect::<Vec<_>>()
+                .join(", "))
+        })?;
 
-        let output_hint = predictor
-            .schema()
-            .output_fields()
-            .last()
-            .map(|field| field.lm_name)
-            .unwrap_or("output");
-
-        for idx in 0..self.breadth.saturating_sub(1) {
-            candidates.push(format!(
-                "{base_instruction}\n\nOptimization hint (d{} c{}): Be explicit and concise for `{}`.",
-                depth + 1,
-                idx + 1,
-                output_hint,
-            ));
-        }
-
-        candidates
+        crate::optimizer::propose::propose_instructions_with_hint(
+            base_instruction,
+            &output_hint,
+            self.breadth,
+            self.prompt_model.as_ref(),
+        )
+        .await
     }
 }
 
@@ -175,13 +173,12 @@ impl Optimizer for COPRO {
             return Err(anyhow!("no optimizable predictors found"));
         }
 
-        for depth in 0..self.depth {
+        for _depth in 0..self.depth {
             for predictor_name in &predictor_names {
                 let base_instruction = Self::current_instruction(module, predictor_name)?;
-
-                let candidates = with_named_predictor(module, predictor_name, |predictor| {
-                    Ok(self.candidate_instructions(&base_instruction, predictor, depth))
-                })?;
+                let candidates = self
+                    .propose_candidates(module, predictor_name, &base_instruction)
+                    .await?;
 
                 let mut best_instruction = base_instruction.clone();
                 let mut best_score = f32::MIN;

@@ -30,16 +30,19 @@
 //! | [`GEPA`] | Genetic-Pareto evolution with feedback | **Yes** | Medium-high (iterations × eval) |
 //! | [`MIPROv2`] | Trace-guided candidate generation | No | Medium (candidates × trials × trainset) |
 
+pub mod bootstrap;
 pub mod copro;
 pub mod gepa;
 pub mod mipro;
 pub mod pareto;
+pub mod propose;
 
+pub use bootstrap::*;
 pub use copro::*;
 pub use gepa::*;
 pub use mipro::*;
 pub use pareto::*;
-
+pub use propose::propose_instructions_with_hint;
 use anyhow::Result;
 use anyhow::anyhow;
 use std::ops::ControlFlow;

@@ -31,6 +31,7 @@ pub mod settings;
 pub mod signature;
 pub mod specials;
 
+pub use dyn_predictor::PredictState;
 pub(crate) use dyn_predictor::*;
 pub use errors::{ConversionError, ErrorClass, JsonishError, LmError, ParseError, PredictError};
 pub use lm::*;

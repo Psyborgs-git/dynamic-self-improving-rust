@@ -29,6 +29,10 @@
 - Fix compiler/Edition breakage in-tree against `rust-toolchain.toml` (`stable`).
 - New DSPy gaps (BootstrapFewShot, BestOfN, etc.) are authored under `dsir`, not upstream.
 
-## Attribution
+## Migration notes (rustc 1.97 / Edition 2024)
 
-See [NOTICE](../NOTICE).
+- Workspace builds on **stable 1.97** (`rust-toolchain.toml`).
+- Facet / rig-core / minijinja remain git-pinned (same revs as upstream DSRs) — required for optimizer leaf discovery and LM tool loops.
+- Facet attr grammar still uses the historical `dsrs::` namespace string inside `define_attr_grammar!` (future-incompat lint #52234); crate-level allow retained from upstream until Facet ships a fix.
+- OpenSSL system packages (`libssl-dev`) are required for `reqwest`/`hf-hub` native TLS on Linux.
+- New dsir modules (BootstrapFewShot, BestOfN, Refine, Agent, Evaluate, persistence, LM instruction proposal) live under `crates/dsir/src/` and are not present upstream.

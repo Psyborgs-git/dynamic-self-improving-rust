@@ -233,6 +233,21 @@ impl MIPROv2 {
             .collect()
     }
 
+    async fn propose_candidate_instructions(
+        &self,
+        program_description: &str,
+        output_hint: &str,
+        num_candidates: usize,
+    ) -> Result<Vec<String>> {
+        crate::optimizer::propose::propose_instructions_with_hint(
+            program_description,
+            output_hint,
+            num_candidates,
+            None,
+        )
+        .await
+    }
+
     pub fn create_prompt_candidates(&self, instructions: Vec<String>) -> Vec<PromptCandidate> {
         instructions.into_iter().map(PromptCandidate::new).collect()
     }
@@ -386,8 +401,34 @@ impl Optimizer for MIPROv2 {
             let traces = self
                 .generate_traces::<S, _, _>(module, &trainset, metric)
                 .await?;
-            let instructions =
-                self.generate_candidate_instructions(&signature_desc, &traces, self.num_candidates);
+            let output_hint = with_named_predictor(module, &predictor_name, |predictor| {
+                Ok(predictor
+                    .schema()
+                    .output_fields()
+                    .iter()
+                    .map(|f| f.lm_name.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", "))
+            })?;
+            let mut instructions = self
+                .propose_candidate_instructions(&signature_desc, &output_hint, self.num_candidates)
+                .await?;
+            if instructions.len() < self.num_candidates {
+                // Blend in tip-based variants from traces when LM returns few candidates.
+                let extras = self.generate_candidate_instructions(
+                    &signature_desc,
+                    &traces,
+                    self.num_candidates,
+                );
+                for extra in extras {
+                    if instructions.len() >= self.num_candidates {
+                        break;
+                    }
+                    if !instructions.iter().any(|i| i == &extra) {
+                        instructions.push(extra);
+                    }
+                }
+            }
             let candidates = self.create_prompt_candidates(instructions);
             let best_candidate = self
                 .evaluate_and_select_best::<S, _, _>(

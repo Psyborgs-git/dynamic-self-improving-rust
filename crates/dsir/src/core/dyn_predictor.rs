@@ -54,8 +54,8 @@ pub(crate) trait DynPredictor: Send + Sync {
 /// Contains demos (as type-erased [`Example`]s) and the instruction override.
 /// Used by [`DynPredictor::dump_state`]/[`DynPredictor::load_state`] for
 /// saving and restoring optimized parameters.
-#[derive(Clone, Debug, Default)]
-pub(crate) struct PredictState {
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct PredictState {
     /// The demos as type-erased examples.
     pub demos: Vec<RawExample>,
     /// The instruction override, if any.

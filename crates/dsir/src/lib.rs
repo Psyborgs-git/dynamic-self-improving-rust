@@ -103,6 +103,7 @@ pub mod data;
 pub mod evaluate;
 pub mod modules;
 pub mod optimizer;
+pub mod persistence;
 pub mod predictors;
 pub mod trace;
 pub mod utils;
@@ -118,6 +119,7 @@ pub use data::utils::*;
 pub use evaluate::*;
 pub use modules::*;
 pub use optimizer::*;
+pub use persistence::*;
 pub use predictors::*;
 pub use utils::*;
 

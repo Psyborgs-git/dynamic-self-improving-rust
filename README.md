@@ -51,6 +51,18 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
+## Library surface (DSPy-shaped)
+
+| Area | Types |
+|------|--------|
+| Signatures | `Signature`, `#[derive(Signature)]` |
+| Modules | `Predict`, `ChainOfThought`, `ReAct`, `Agent`, `BestOfN`, `Refine` |
+| Optimize | `LabeledFewShot`, `BootstrapFewShot`, `COPRO`, `MIPROv2`, `GEPA` |
+| Evaluate | `TypedMetric`, `Evaluate`, `evaluate_trainset` |
+| Persist | `save_program` / `load_program` |
+
+Examples: `cargo run -p dsir --example 01_predict` … `04_bootstrap`.
+
 ## Docs
 
 - [Goals](docs/GOALS.md)
