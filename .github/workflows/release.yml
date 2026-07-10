@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-binaries:
+    name: build binaries (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+      - name: install system dependencies (ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config
+
+      - name: build release binaries
+        shell: bash
+        run: cargo build --release --target ${{ matrix.target }} --examples
+
+      - name: collect binaries
+        shell: bash
+        run: |
+          mkdir -p dist/${{ matrix.target }}
+          # Copy any regular binary crates produced by the workspace.
+          if [ -d target/${{ matrix.target }}/release ]; then
+            for f in target/${{ matrix.target }}/release/*; do
+              case "$f" in
+                *.d|*.rlib|*.rmeta|*.so|*.dylib|*.dll|*.pdb|*.dSYM) continue ;;
+              esac
+              if [ -f "$f" ] && [ -x "$f" ]; then
+                cp "$f" dist/${{ matrix.target }}/
+              fi
+            done
+          fi
+          # Copy example binaries (this workspace is a library, so examples are the primary distributable executables).
+          if [ -d target/${{ matrix.target }}/release/examples ]; then
+            for f in target/${{ matrix.target }}/release/examples/*; do
+              case "$f" in
+                *.d|*.rlib|*.rmeta|*.so|*.dylib|*.dll|*.pdb|*.dSYM) continue ;;
+              esac
+              if [ -f "$f" ] && [ -x "$f" ]; then
+                cp "$f" dist/${{ matrix.target }}/
+              fi
+            done
+          fi
+
+      - name: package binaries
+        shell: bash
+        run: |
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            cd dist/${{ matrix.target }}
+            zip -r ../../dsir-${{ matrix.target }}.zip .
+            cd ../..
+          else
+            tar -czf dsir-${{ matrix.target }}.tar.gz -C dist/${{ matrix.target }} .
+          fi
+
+      - name: upload release assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dsir-${{ matrix.target }}.*
+
+      - name: upload workflow artifacts
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsir-${{ matrix.target }}
+          path: dist/${{ matrix.target }}/
