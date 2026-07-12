@@ -1264,49 +1264,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
-name = "dsir"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arrow",
- "async-trait",
- "bamltype",
- "bon",
- "csv",
- "dsir_macros",
- "enum_dispatch",
- "facet",
- "foyer",
- "futures",
- "hf-hub",
- "indexmap",
- "kdam",
- "minijinja",
- "parquet",
- "rand 0.8.6",
- "rayon",
- "regex",
- "reqwest 0.13.4",
- "rig-core",
- "rstest 0.25.0",
- "schemars",
- "serde",
- "serde_json",
- "temp-env",
- "tempfile",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "dsir-lab-ui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
- "dsir",
+ "psyborgs-git-dsir",
  "serde",
  "serde_json",
  "tokio",
@@ -1321,26 +1284,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
- "dsir",
+ "psyborgs-git-dsir",
  "serde",
  "serde_json",
  "tokio",
  "tower-http",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "dsir_macros"
-version = "0.1.0"
-dependencies = [
- "minijinja",
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "serde_json",
- "syn 2.0.118",
- "trybuild",
 ]
 
 [[package]]
@@ -3364,6 +3314,56 @@ dependencies = [
  "rusty-fork",
  "tempfile",
  "unarray",
+]
+
+[[package]]
+name = "psyborgs-git-dsir"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arrow",
+ "async-trait",
+ "bamltype",
+ "bon",
+ "csv",
+ "enum_dispatch",
+ "facet",
+ "foyer",
+ "futures",
+ "hf-hub",
+ "indexmap",
+ "kdam",
+ "minijinja",
+ "parquet",
+ "psyborgs-git-dsir-macros",
+ "rand 0.8.6",
+ "rayon",
+ "regex",
+ "reqwest 0.13.4",
+ "rig-core",
+ "rstest 0.25.0",
+ "schemars",
+ "serde",
+ "serde_json",
+ "temp-env",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "psyborgs-git-dsir-macros"
+version = "0.1.0"
+dependencies = [
+ "minijinja",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "serde_json",
+ "syn 2.0.118",
+ "trybuild",
 ]
 
 [[package]]

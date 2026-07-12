@@ -8,7 +8,7 @@
 
 ```toml
 [dependencies]
-dsir = { package = "psyborgs-git-dsir", path = "crates/dsir" }  # or crates.io when published
+dsir = { path = "crates/dsir" }  # or crates.io when published
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -50,7 +50,7 @@ async fn main() -> anyhow::Result<()> {
 ```
 
 ```bash
-cargo run -p psyborgs-git-dsir --example 01_predict   # requires OPENAI_API_KEY
+cargo run -p dsir --example 01_predict   # requires OPENAI_API_KEY
 ```
 
 ## Library surface
@@ -81,11 +81,11 @@ See [optimizers overview](docs/user/optimizers/overview.md).
 
 | Example | Command | Notes |
 |---------|---------|-------|
-| Predict | `cargo run -p psyborgs-git-dsir --example 01_predict` | Live LM |
-| Chain of thought | `cargo run -p psyborgs-git-dsir --example 02_cot` | Live LM |
-| Bootstrap | `cargo run -p psyborgs-git-dsir --example 04_bootstrap` | Offline |
-| Lab | `cargo run -p psyborgs-git-dsir --example 05_lab` | Offline |
-| Program graph | `cargo run -p psyborgs-git-dsir --example 06_graph` | Offline |
+| Predict | `cargo run -p dsir --example 01_predict` | Live LM |
+| Chain of thought | `cargo run -p dsir --example 02_cot` | Live LM |
+| Bootstrap | `cargo run -p dsir --example 04_bootstrap` | Offline |
+| Lab | `cargo run -p dsir --example 05_lab` | Offline |
+| Program graph | `cargo run -p dsir --example 06_graph` | Offline |
 
 Companion binaries: `dsir-registry` (HTTP run registry), `dsir-lab-ui` (experiment dashboard).
 
