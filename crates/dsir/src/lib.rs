@@ -69,8 +69,7 @@
 //!   types, but it isn't.
 //! - **Container traversal is partial.** The optimizer walker handles `Option`, `Vec`,
 //!   `HashMap<String, _>`, and `Box`. `Rc`/`Arc` containing `Predict` leaves return
-//!   explicit container errors (not silent skips), and `Predict` discovery requires
-//!   a valid shape-local accessor payload (`TODO(dsrs-shared-ptr-policy)`).
+//!   explicit container errors (not silent skips).
 //!
 //! # Dynamic runtime path
 //!
@@ -78,6 +77,25 @@
 //! [`DynPredict`] / [`DynModule`], [`ProgramGraph`] / [`StrategyFactory`], and
 //! [`Lab`](crate::Lab) with `compile_dyn` optimizers. Typed `#[derive(Signature)]`
 //! remains the primary API for static Rust programs.
+//!
+//! User guides (repository `docs/user/`):
+//! - Dynamic signatures — `building-blocks/dyn-signatures.md`
+//! - Program graph — `dynamic-programs/program-graph.md`
+//! - Lab — `lab/overview.md`
+//! - compile_dyn — `optimizers/compile-dyn.md`
+//!
+//! # Examples
+//!
+//! Runnable examples live in `crates/dsir/examples/`:
+//!
+//! ```bash
+//! cargo run -p dsir --example 01_predict   # Signature → Predict (live LM)
+//! cargo run -p dsir --example 04_bootstrap # BootstrapFewShot (offline)
+//! cargo run -p dsir --example 05_lab       # Lab workflow (offline)
+//! cargo run -p dsir --example 06_graph     # ProgramGraph (offline)
+//! ```
+//!
+//! See `docs/user/guides/examples.md` for the full index.
 //!
 //! # Crate organization
 //!

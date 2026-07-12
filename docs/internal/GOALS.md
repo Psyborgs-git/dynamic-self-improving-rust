@@ -6,9 +6,9 @@
 
 Users should be able to:
 
-1. Define a task with a typed `Signature` **or** a runtime [`DynSignature`](../crates/dsir/src/core/dyn_signature.rs) (JSON schema / string DSL, including nested object/list fields).
+1. Define a task with a typed `Signature` **or** a runtime [`DynSignature`](../../crates/dsir/src/core/dyn_signature.rs) (JSON schema / string DSL, including nested object/list fields).
 2. Pick a strategy (`Predict`, `ChainOfThought`, `ReAct`, `Agent`, `BestOfN`, `Refine`, or `StrategyFactory` for dyn).
-3. Compose multi-step pipelines as Rust modules **or** a [`ProgramGraph`](../crates/dsir/src/graph/program_graph.rs).
+3. Compose multi-step pipelines as Rust modules **or** a [`ProgramGraph`](../../crates/dsir/src/graph/program_graph.rs).
 4. Evaluate with metrics and optimize with `LabeledFewShot` / `BootstrapFewShot` / COPRO / MIPROv2 / GEPA / structural search (`compile` and `compile_dyn`).
 5. Persist compiled predictor/graph state and promote winners via the self-improvement lab (local + remote registry, experiment UI).
 
@@ -24,8 +24,13 @@ Users should be able to:
 - Users install with `cargo add dsir` and write DSPy-shaped pipelines without importing any DSRs crate.
 - BootstrapFewShot can improve a small QA program on a toy trainset (demo + metric).
 - Dyn lab example can author → optimize → compare → promote offline.
-- Architecture and module responsibilities are documented under `docs/`.
+- User-facing guides live under [`docs/user/`](../user/index.md); architecture notes under `docs/internal/`.
 
 ## Provenance
 
-Core LM programming pieces (signatures, adapters, predictors, CoT, ReAct, LM clients) are **vendored and adapted** from [DSRs](https://github.com/krypticmouse/DSRs) (Apache-2.0). See [VENDOR.md](VENDOR.md) and [NOTICE](../NOTICE). Gaps and weak optimizers are implemented in-tree as `dsir` modules.
+Core LM programming pieces (signatures, adapters, predictors, CoT, ReAct, LM clients) are **vendored and adapted** from [DSRs](https://github.com/krypticmouse/DSRs) (Apache-2.0). See [VENDOR.md](VENDOR.md) and [NOTICE](../../NOTICE). Gaps and weak optimizers are implemented in-tree as `dsir` modules.
+
+## See also
+
+- [User documentation hub](../README.md)
+- [Architecture](ARCHITECTURE.md)

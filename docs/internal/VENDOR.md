@@ -1,5 +1,7 @@
 # Vendor notes
 
+> **Audience:** contributors and migrators from upstream DSRs. End users should read the [user documentation](../README.md) instead.
+
 ## Source
 
 - Upstream: [krypticmouse/DSRs](https://github.com/krypticmouse/DSRs) (crate historically published as `dspy-rs`)
@@ -36,3 +38,8 @@
 - Facet attr grammar still uses the historical `dsrs::` namespace string inside `define_attr_grammar!` (future-incompat lint #52234); crate-level allow retained from upstream until Facet ships a fix.
 - OpenSSL system packages (`libssl-dev`) are required for `reqwest`/`hf-hub` native TLS on Linux.
 - New dsir modules (BootstrapFewShot, BestOfN, Refine, Agent, Evaluate, persistence, LM instruction proposal) live under `crates/dsir/src/` and are not present upstream.
+
+## See also
+
+- [Migrating from DSRs](../user/guides/migrating-from-dsrs.md) (user-facing rename guide)
+- [NOTICE](../../NOTICE)
