@@ -51,7 +51,7 @@ Internal module map inside `dsir`:
 ## Vendored vs new
 
 - **Vendored (adapted from DSRs):** signatures, macros, ChatAdapter, LM clients, Predict, ChainOfThought, ReAct, Module trait, thin eval, optimizer trait/walker, DataLoader/trace.
-- **New in dsir:** BootstrapFewShot, LabeledFewShot, stronger COPRO/MIPRO, BestOfN, Refine, Agent facade, richer Evaluate, program persistence, docs.
+- **New in dsir:** BootstrapFewShot, LabeledFewShot, stronger COPRO/MIPRO, BestOfN, Refine, Agent facade, richer Evaluate, program persistence, dynamic programs, lab.
 
 There is **no** Cargo dependency on `dspy-rs`.
 
@@ -60,3 +60,12 @@ There is **no** Cargo dependency on `dspy-rs`.
 - `rust-toolchain.toml` pins `stable` (1.97+).
 - Async-first (`tokio`).
 - Heavy deps (parquet/HF) are feature-gated when present.
+
+## See also
+
+- [Signatures](../user/building-blocks/signature.md) and [dynamic signatures](../user/building-blocks/dyn-signatures.md)
+- [Modules](../user/building-blocks/modules.md) and [strategies](../user/building-blocks/strategies.md)
+- [Optimizers overview](../user/optimizers/overview.md)
+- [Dynamic programs](../user/dynamic-programs/program-graph.md)
+- [Lab](../user/lab/overview.md)
+- [Module map](MODULES.md)
