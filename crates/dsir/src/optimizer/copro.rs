@@ -207,6 +207,53 @@ impl Optimizer for COPRO {
     }
 }
 
+impl COPRO {
+    /// Dynamic instruction search over [`DynModule`] Facet leaves.
+    pub async fn compile_dyn<M, MT>(
+        &self,
+        module: &mut M,
+        trainset: Vec<crate::data::example::Example>,
+        metric: &MT,
+    ) -> Result<()>
+    where
+        M: crate::predictors::DynModule + for<'a> Facet<'a>,
+        MT: crate::evaluate::DynMetric,
+    {
+        use crate::optimizer::dyn_compile::{ensure_predictors, score_instruction_dyn};
+
+        if self.breadth <= 1 {
+            return Err(anyhow!("breadth must be greater than 1"));
+        }
+        let predictor_names = ensure_predictors(module)?;
+        for _depth in 0..self.depth {
+            for predictor_name in &predictor_names {
+                let base_instruction = Self::current_instruction(module, predictor_name)?;
+                let candidates = self
+                    .propose_candidates(module, predictor_name, &base_instruction)
+                    .await?;
+                let mut best_instruction = base_instruction;
+                let mut best_score = f32::MIN;
+                for candidate in candidates {
+                    let score = score_instruction_dyn(
+                        module,
+                        predictor_name,
+                        &candidate,
+                        &trainset,
+                        metric,
+                    )
+                    .await?;
+                    if score > best_score {
+                        best_score = score;
+                        best_instruction = candidate;
+                    }
+                }
+                Self::set_instruction(module, predictor_name, best_instruction)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use anyhow::{Result, anyhow};

@@ -32,6 +32,7 @@
 
 pub mod bootstrap;
 pub mod copro;
+pub mod dyn_compile;
 pub mod gepa;
 pub mod mipro;
 pub mod pareto;

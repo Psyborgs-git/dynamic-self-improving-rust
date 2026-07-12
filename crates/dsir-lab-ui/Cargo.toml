@@ -1,0 +1,21 @@
+[package]
+name = "dsir-lab-ui"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "Experiment UI dashboard for the dsir self-improvement lab"
+
+[[bin]]
+name = "dsir-lab-ui"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.99"
+axum = "0.8"
+dsir = { path = "../dsir" }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+tokio = { version = "1.46.1", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

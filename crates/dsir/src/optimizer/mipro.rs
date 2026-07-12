@@ -452,6 +452,113 @@ impl Optimizer for MIPROv2 {
     }
 }
 
+/// Dynamic execution trace used by [`MIPROv2::compile_dyn`].
+#[derive(Clone, Debug)]
+pub struct DynTrace {
+    pub input: crate::data::example::Example,
+    pub output: crate::data::example::Example,
+    pub score: Option<f32>,
+}
+
+impl MIPROv2 {
+    /// Dynamic MIPRO: instruction search + demo seeding from successful traces.
+    pub async fn compile_dyn<M, MT>(
+        &self,
+        module: &mut M,
+        trainset: Vec<crate::data::example::Example>,
+        metric: &MT,
+    ) -> Result<()>
+    where
+        M: crate::predictors::DynModule + for<'a> Facet<'a>,
+        MT: crate::evaluate::DynMetric,
+    {
+        use crate::evaluate::input_only;
+        use crate::optimizer::dyn_compile::{
+            assign_demos_best_effort, ensure_predictors, score_instruction_dyn,
+        };
+
+        let predictor_names = ensure_predictors(module)?;
+        for predictor_name in predictor_names {
+            let signature_desc = with_named_predictor(module, &predictor_name, |predictor| {
+                Ok(self.format_schema_fields(predictor.schema()))
+            })?;
+
+            let mut traces = Vec::new();
+            let mut successful_demos = Vec::new();
+            for example in &trainset {
+                let predicted = module
+                    .call(input_only(example))
+                    .await
+                    .map_err(|err| anyhow!("{err}"))?;
+                let outcome = metric.evaluate(example, &predicted).await?;
+                traces.push(DynTrace {
+                    input: input_only(example),
+                    output: predicted.into_inner(),
+                    score: Some(outcome.score),
+                });
+                if outcome.score >= 1.0 || outcome.score >= 0.99 {
+                    successful_demos.push(example.clone());
+                }
+            }
+
+            let output_hint = with_named_predictor(module, &predictor_name, |predictor| {
+                Ok(predictor
+                    .schema()
+                    .output_fields()
+                    .iter()
+                    .map(|f| f.lm_name.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", "))
+            })?;
+            let mut instructions = self
+                .propose_candidate_instructions(&signature_desc, &output_hint, self.num_candidates)
+                .await?;
+            if instructions.len() < self.num_candidates {
+                let tips = PromptingTips::default_tips();
+                let score_hint = traces.iter().filter_map(|t| t.score).fold(0.0f32, f32::max);
+                for (idx, tip) in tips.tips.iter().enumerate() {
+                    if instructions.len() >= self.num_candidates {
+                        break;
+                    }
+                    instructions.push(format!(
+                        "{signature_desc}\n\nOptimization candidate {}:\n- {tip}\n- Target score >= {score_hint:.3}",
+                        idx + 1
+                    ));
+                }
+            }
+
+            let mut best_instruction = instructions
+                .first()
+                .cloned()
+                .unwrap_or_else(|| "Answer carefully.".into());
+            let mut best_score = f32::MIN;
+            for candidate in instructions.into_iter().take(self.num_trials.max(1)) {
+                let score =
+                    score_instruction_dyn(module, &predictor_name, &candidate, &trainset, metric)
+                        .await?;
+                if score > best_score {
+                    best_score = score;
+                    best_instruction = candidate;
+                }
+            }
+
+            with_named_predictor(module, &predictor_name, |predictor| {
+                predictor.set_instruction(best_instruction);
+                if !successful_demos.is_empty() {
+                    let demos = successful_demos
+                        .iter()
+                        .take(self.minibatch_size.max(1))
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    let _ = assign_demos_best_effort(predictor, demos);
+                }
+                Ok(())
+            })?;
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use anyhow::{Result, anyhow};

@@ -188,6 +188,97 @@ impl Optimizer for BootstrapFewShot {
     }
 }
 
+impl LabeledFewShot {
+    /// Dynamic variant: assign labeled [`RawExample`] demos onto Facet-discovered leaves.
+    pub async fn compile_dyn<M>(
+        &self,
+        module: &mut M,
+        trainset: Vec<RawExample>,
+    ) -> Result<usize>
+    where
+        M: for<'a> Facet<'a>,
+    {
+        use crate::optimizer::dyn_compile::{assign_demos_best_effort, ensure_predictors};
+
+        let demos: Vec<RawExample> = trainset.into_iter().take(self.k).collect();
+        let names = ensure_predictors(module)?;
+        let mut assigned = 0usize;
+        for name in names {
+            with_named_predictor(module, &name, |predictor| {
+                assign_demos_best_effort(predictor, demos.clone())?;
+                assigned += 1;
+                Ok(())
+            })?;
+        }
+        Ok(assigned)
+    }
+}
+
+impl BootstrapFewShot {
+    /// Dynamic bootstrap over [`DynModule`] + Facet leaves.
+    pub async fn compile_dyn<M, MT>(
+        &self,
+        module: &mut M,
+        trainset: Vec<RawExample>,
+        metric: &MT,
+    ) -> Result<BootstrapReport>
+    where
+        M: crate::predictors::DynModule + for<'a> Facet<'a>,
+        MT: crate::evaluate::DynMetric,
+    {
+        use crate::optimizer::dyn_compile::{
+            assign_demos_best_effort, ensure_predictors, example_as_demo, merge_unique,
+            run_and_score_dyn,
+        };
+
+        let names = ensure_predictors(module)?;
+        let labeled_raw: Vec<RawExample> = trainset
+            .iter()
+            .take(self.max_labeled_demos)
+            .map(example_as_demo)
+            .collect();
+        let labeled = labeled_raw.len();
+
+        for name in &names {
+            with_named_predictor(module, name, |predictor| {
+                assign_demos_best_effort(predictor, labeled_raw.clone())
+            })?;
+        }
+
+        let mut bootstrapped_raw: Vec<RawExample> = Vec::new();
+        let mut scores = Vec::new();
+        for example in &trainset {
+            if bootstrapped_raw.len() >= self.max_bootstrapped_demos {
+                break;
+            }
+            let outcome = run_and_score_dyn(module, example, metric).await?;
+            scores.push(outcome.score);
+            if outcome.score >= self.metric_threshold {
+                bootstrapped_raw.push(example_as_demo(example));
+            }
+        }
+
+        let merged = merge_unique(labeled_raw, bootstrapped_raw.clone());
+        for name in &names {
+            with_named_predictor(module, name, |predictor| {
+                assign_demos_best_effort(predictor, merged.clone())
+            })?;
+        }
+
+        let average_train_score = if scores.is_empty() {
+            0.0
+        } else {
+            scores.iter().sum::<f32>() / scores.len() as f32
+        };
+
+        Ok(BootstrapReport {
+            labeled,
+            bootstrapped: bootstrapped_raw.len(),
+            average_train_score,
+        })
+    }
+}
+
 fn raw_from_typed_example<S: Signature>(example: &Example<S>) -> Result<RawExample>
 where
     S::Input: BamlType,

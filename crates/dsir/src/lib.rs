@@ -61,14 +61,9 @@
 //!
 //! # What doesn't work (yet)
 //!
-//! - **No dynamic graph / structural optimization.** The type-erased `ProgramGraph`,
-//!   `DynModule`, `StrategyFactory` layer was prototyped and intentionally removed.
-//!   Everything here is statically typed, which is both the strength and the constraint.
-//! - **MIPRO is instruction-only.** It should also mutate demos per-predictor based on
-//!   trace data — Python DSPy does this — but it doesn't yet (`TODO(trace-demos)`).
-//! - **No `ReAct`, `BestOfN`, `Refine`, or other advanced modules** beyond `ChainOfThought`.
-//!   The module trait and augmentation system are designed for them, but nobody's built
-//!   them yet.
+//! - **Typed MIPRO is still instruction-only** on the static `Optimizer::compile` path
+//!   (`TODO(trace-demos)`). The dyn path ([`MIPROv2::compile_dyn`](crate::MIPROv2::compile_dyn))
+//!   seeds demos from successful traces.
 //! - **`CallMetadata` is not extensible.** Modules can't attach custom metadata (e.g.
 //!   "which attempt won in BestOfN"). This should probably be a trait with associated
 //!   types, but it isn't.
@@ -77,15 +72,23 @@
 //!   explicit container errors (not silent skips), and `Predict` discovery requires
 //!   a valid shape-local accessor payload (`TODO(dsrs-shared-ptr-policy)`).
 //!
+//! # Dynamic runtime path
+//!
+//! For runtime-configurable programs use [`DynSignature`] (JSON schema or string DSL),
+//! [`DynPredict`] / [`DynModule`], [`ProgramGraph`] / [`StrategyFactory`], and
+//! [`Lab`](crate::Lab) with `compile_dyn` optimizers. Typed `#[derive(Signature)]`
+//! remains the primary API for static Rust programs.
+//!
 //! # Crate organization
 //!
 //! - [`adapter`] — Prompt formatting and LM response parsing ([`ChatAdapter`])
-//! - [`core`] — [`Module`] trait, [`Signature`] trait, [`SignatureSchema`], error types,
-//!   LM client, [`Predicted`] and [`CallMetadata`]
-//! - [`predictors`] — [`Predict`] (the leaf module) and typed [`Example`]
-//! - [`modules`] — [`ChainOfThought`] and augmentation types
-//! - [`evaluate`] — [`TypedMetric`] trait, [`evaluate_trainset`], scoring utilities
-//! - [`optimizer`] — [`Optimizer`] trait, [`COPRO`], [`GEPA`], [`MIPROv2`]
+//! - [`core`] — [`Module`] trait, [`Signature`] / [`DynSignature`], [`SignatureSchema`], LM client
+//! - [`predictors`] — [`Predict`], [`DynPredict`], typed [`Example`]
+//! - [`graph`] — [`ProgramGraph`], [`StrategyFactory`], structural search
+//! - [`modules`] — [`ChainOfThought`], [`ReAct`], [`BestOfN`], [`Refine`], [`Agent`]
+//! - [`evaluate`] — [`TypedMetric`], [`DynMetric`], [`evaluate_trainset`]
+//! - [`optimizer`] — [`Optimizer`], [`COPRO`], [`GEPA`], [`MIPROv2`], `compile_dyn`
+//! - [`lab`] — self-improvement authoring, compare, promote, registry client
 //! - [`data`] — [`DataLoader`] for JSON/CSV/Parquet/HuggingFace datasets
 //! - [`trace`] — Execution graph recording for debugging
 //! - [`utils`] — Response caching
@@ -101,6 +104,8 @@ pub mod augmentation;
 pub mod core;
 pub mod data;
 pub mod evaluate;
+pub mod graph;
+pub mod lab;
 pub mod modules;
 pub mod optimizer;
 pub mod persistence;
@@ -113,10 +118,13 @@ pub use augmentation::*;
 pub use core::*;
 pub use data::dataloader::*;
 pub(crate) use data::example::Example as RawExample;
+pub use data::RawExample as UntypedExample;
 pub use data::prediction::*;
 pub use data::serialize::*;
 pub use data::utils::*;
 pub use evaluate::*;
+pub use graph::*;
+pub use lab::*;
 pub use modules::*;
 pub use optimizer::*;
 pub use persistence::*;

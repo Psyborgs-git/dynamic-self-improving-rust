@@ -500,6 +500,184 @@ impl Optimizer for GEPA {
     }
 }
 
+impl GEPA {
+    /// Dynamic GEPA over [`DynModule`] Facet leaves (requires feedback-capable metric).
+    pub async fn compile_dyn<M, MT>(
+        &self,
+        module: &mut M,
+        trainset: Vec<crate::data::example::Example>,
+        metric: &MT,
+    ) -> Result<GEPAResult>
+    where
+        M: crate::predictors::DynModule + for<'a> Facet<'a>,
+        MT: crate::evaluate::DynMetric,
+    {
+        use crate::evaluate::{average_score, evaluate_dyn_trainset, input_only};
+        use crate::optimizer::dyn_compile::ensure_predictors;
+        use crate::optimizer::pareto::ParetoFrontier;
+
+        let names = ensure_predictors(module)?;
+        let module_name = names[0].clone();
+        let eval_set = &trainset;
+        let mut frontier = ParetoFrontier::new();
+        let mut all_candidates = Vec::new();
+        let mut evolution_history = Vec::new();
+        let mut frontier_history = Vec::new();
+        let mut total_rollouts = 0usize;
+        let mut total_lm_calls = 0usize;
+
+        let base_instruction =
+            with_named_predictor(module, &module_name, |p| Ok(p.instruction()))?;
+        Self::set_instruction(module, &module_name, base_instruction.clone())?;
+        let initial = evaluate_dyn_trainset(module, eval_set, metric).await?;
+        total_rollouts += initial.len();
+        total_lm_calls += initial.len();
+        for outcome in &initial {
+            if outcome.feedback.is_none() {
+                return Err(anyhow!(
+                    "GEPA compile_dyn requires MetricOutcome feedback on every example"
+                ));
+            }
+        }
+        let scores: Vec<f32> = initial.iter().map(|o| o.score).collect();
+        let candidate = GEPACandidate {
+            id: 0,
+            instruction: base_instruction,
+            module_name: module_name.clone(),
+            example_scores: scores.clone(),
+            parent_id: None,
+            generation: 0,
+        };
+        frontier.add_candidate(candidate.clone(), &scores);
+        all_candidates.push(candidate);
+
+        let iterations = self.num_iterations.max(self.num_trials.min(self.num_iterations));
+        for generation in 0..iterations {
+            if Self::would_exceed_budget(total_rollouts, self.minibatch_size, self.max_rollouts)
+                || Self::would_exceed_budget(total_lm_calls, self.minibatch_size, self.max_lm_calls)
+            {
+                break;
+            }
+            let parent = frontier
+                .best_by_average()
+                .cloned()
+                .context("empty frontier")?;
+            let feedback_bits: String = initial
+                .iter()
+                .filter_map(|o| o.feedback.as_ref().map(|f| f.feedback.clone()))
+                .take(3)
+                .collect::<Vec<_>>()
+                .join(" | ");
+            let temperature_note = if self.temperature != 1.0 {
+                format!(" temperature={}", self.temperature)
+            } else {
+                String::new()
+            };
+            let child_instruction = format!(
+                "{}\n\nImprove based on feedback:{temperature_note} {}",
+                parent.instruction, feedback_bits
+            );
+            let proposals = crate::optimizer::propose::propose_instructions_with_hint(
+                &child_instruction,
+                "improved instruction",
+                3,
+                self.prompt_model.as_ref(),
+            )
+            .await?;
+            let child_instruction = proposals
+                .into_iter()
+                .nth(1)
+                .unwrap_or(child_instruction);
+
+            Self::set_instruction(module, &module_name, child_instruction.clone())?;
+            let minibatch_end = eval_set.len().min(self.minibatch_size.max(1));
+            let outcomes =
+                evaluate_dyn_trainset(module, &eval_set[..minibatch_end], metric).await?;
+            total_rollouts += outcomes.len();
+            total_lm_calls += outcomes.len();
+            for outcome in &outcomes {
+                if outcome.feedback.is_none() {
+                    return Err(anyhow!("GEPA compile_dyn requires feedback outcomes"));
+                }
+            }
+            let child_scores: Vec<f32> = outcomes.iter().map(|o| o.score).collect();
+            let child = GEPACandidate {
+                id: generation + 1,
+                instruction: child_instruction,
+                module_name: module_name.clone(),
+                example_scores: child_scores.clone(),
+                parent_id: Some(parent.id),
+                generation: generation + 1,
+            };
+            frontier.add_candidate(child.clone(), &child_scores);
+            if self.track_stats {
+                all_candidates.push(child);
+                evolution_history.push((
+                    generation,
+                    frontier
+                        .best_by_average()
+                        .map(|c| c.average_score())
+                        .unwrap_or(0.0),
+                ));
+                frontier_history.push(frontier.statistics());
+            }
+        }
+
+        let best_candidate = frontier
+            .best_by_average()
+            .cloned()
+            .context("no candidates on frontier")?;
+        Self::set_instruction(
+            module,
+            &best_candidate.module_name,
+            best_candidate.instruction.clone(),
+        )?;
+
+        let best_outputs_valset = if self.track_best_outputs {
+            let mut outs = Vec::new();
+            for example in eval_set {
+                let predicted = module
+                    .call(input_only(example))
+                    .await
+                    .map_err(|err| anyhow!("{err}"))?;
+                outs.push(crate::BamlValue::Map(
+                    predicted
+                        .into_inner()
+                        .data
+                        .into_iter()
+                        .map(|(k, v)| {
+                            (
+                                k,
+                                crate::BamlValue::try_from(v)
+                                    .unwrap_or(crate::BamlValue::Null),
+                            )
+                        })
+                        .collect(),
+                ));
+            }
+            Some(outs)
+        } else {
+            None
+        };
+
+        let _ = average_score;
+        Ok(GEPAResult {
+            best_candidate,
+            all_candidates: if self.track_stats {
+                all_candidates
+            } else {
+                Vec::new()
+            },
+            total_rollouts,
+            total_lm_calls,
+            evolution_history,
+            highest_score_achieved_per_val_task: Vec::new(),
+            best_outputs_valset,
+            frontier_history,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use anyhow::{Result, anyhow};

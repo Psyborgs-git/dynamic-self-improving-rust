@@ -335,7 +335,10 @@ fn resolve_predict_leaf(shape: &'static Shape) -> PredictLeafResolution {
 }
 
 fn is_predict_shape_identity(shape: &'static Shape) -> bool {
-    shape.type_identifier == "Predict" && shape.module_path == Some("dsir::predictors::predict")
+    (shape.type_identifier == "Predict"
+        && shape.module_path == Some("dsir::predictors::predict"))
+        || (shape.type_identifier == "DynPredict"
+            && shape.module_path == Some("dsir::predictors::dyn_predict"))
 }
 
 fn push_field(path: &str, field: &str) -> String {
@@ -522,6 +525,31 @@ mod tests {
     #[test]
     fn real_predict_shape_has_strict_identity_marker() {
         assert!(is_predict_shape_identity(RealPredict::<DummySig>::SHAPE));
+    }
+
+    #[test]
+    fn dyn_predict_shape_has_strict_identity_marker() {
+        use crate::predictors::DynPredict;
+        assert!(is_predict_shape_identity(DynPredict::SHAPE));
+    }
+
+    #[test]
+    fn echo_module_discovers_dyn_predict_leaf() {
+        use crate::predictors::DynPredict;
+        use crate::{DynSignature, lab::EchoModule};
+        use crate::graph::StrategyKind;
+
+        let sig = DynSignature::from_dsl("prompt -> answer").unwrap();
+        let mut module = EchoModule::from_signature(&sig, StrategyKind::Predict).unwrap();
+        let mut paths = Vec::new();
+        visit_named_predictors_mut(&mut module, |path, predictor| {
+            paths.push(path.to_string());
+            predictor.set_instruction("x".into());
+            ControlFlow::Continue(())
+        })
+        .expect("walk should succeed");
+        assert_eq!(paths, vec!["predictor".to_string()]);
+        let _ = DynPredict::SHAPE;
     }
 
     #[derive(facet::Facet)]
