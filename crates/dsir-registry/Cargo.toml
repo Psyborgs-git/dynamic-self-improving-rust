@@ -12,7 +12,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0.99"
 axum = "0.8"
-dsir = { path = "../dsir" }
+dsir = { package = "psyborgs-git-dsir", path = "../dsir" }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 tokio = { version = "1.46.1", features = ["full"] }
