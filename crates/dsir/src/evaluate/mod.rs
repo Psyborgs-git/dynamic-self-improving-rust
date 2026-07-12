@@ -21,4 +21,5 @@ pub mod runner;
 pub use evaluator::*;
 pub use feedback::*;
 pub use feedback_helpers::*;
+pub use metrics::*;
 pub use runner::*;

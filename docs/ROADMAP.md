@@ -23,6 +23,15 @@ LabeledFewShot, BootstrapFewShot, LM-proposed COPRO/MIPROv2.
 
 Examples, tests, feature flags, crate docs.
 
+## Phase 5 — Dynamic signatures + self-improvement lab
+
+1. `DynSignature` from JSON schema + string DSL (nested object/list).
+2. `DynPredict` / `DynModule`, raw adapter I/O.
+3. `ProgramGraph`, `StrategyFactory`, structural optimization.
+4. `compile_dyn` for Bootstrap/COPRO/MIPRO/GEPA.
+5. `Lab` + local/remote registry + experiment UI.
+6. Examples `05_lab`, `06_graph`.
+
 ## Out of scope (v0.1)
 
 External GEPA, GRPO, finetune, PoT sandbox, ColBERT, streaming, multimodal, crates.io `dspy-rs` dependency.

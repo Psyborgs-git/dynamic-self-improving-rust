@@ -55,13 +55,17 @@ async fn main() -> anyhow::Result<()> {
 
 | Area | Types |
 |------|--------|
-| Signatures | `Signature`, `#[derive(Signature)]` |
-| Modules | `Predict`, `ChainOfThought`, `ReAct`, `Agent`, `BestOfN`, `Refine` |
-| Optimize | `LabeledFewShot`, `BootstrapFewShot`, `COPRO`, `MIPROv2`, `GEPA` |
-| Evaluate | `TypedMetric`, `Evaluate`, `evaluate_trainset` |
-| Persist | `save_program` / `load_program` |
+| Signatures | `Signature`, `#[derive(Signature)]`, `DynSignature` (JSON / string DSL) |
+| Modules | `Predict`, `DynPredict`, `ChainOfThought`, `ReAct`, `Agent`, `BestOfN`, `Refine` |
+| Graphs | `ProgramGraph`, `StrategyFactory`, `StructuralOptimizer` |
+| Optimize | `LabeledFewShot`, `BootstrapFewShot`, `COPRO`, `MIPROv2`, `GEPA` (+ `compile_dyn`) |
+| Evaluate | `TypedMetric`, `DynMetric`, `Evaluate`, `evaluate_trainset` |
+| Lab | `Lab`, local/remote registry, promote/compare |
+| Persist | `save_program` / `load_program`, `GraphState` |
 
-Examples: `cargo run -p dsir --example 01_predict` … `04_bootstrap`.
+Examples: `cargo run -p dsir --example 01_predict` … `05_lab` / `06_graph`.
+
+Companion binaries: `dsir-registry` (HTTP run registry), `dsir-lab-ui` (experiment dashboard).
 
 ## Docs
 

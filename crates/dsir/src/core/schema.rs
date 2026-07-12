@@ -86,7 +86,9 @@ pub struct FieldSchema {
     /// Type representation used for edge validation and output format generation.
     pub type_ir: TypeIR,
     /// The Facet shape of this field's type.
-    pub shape: &'static Shape,
+    ///
+    /// `None` for runtime [`crate::DynSignature`] fields (TypeIR is the source of truth).
+    pub shape: Option<&'static Shape>,
     /// Path through the flatten tree to reach this field.
     pub path: FieldPath,
     /// Constraints declared on this field.
@@ -100,7 +102,7 @@ impl FieldSchema {
         &self.path
     }
 
-    pub fn shape(&self) -> &'static Shape {
+    pub fn shape(&self) -> Option<&'static Shape> {
         self.shape
     }
 }
@@ -247,6 +249,23 @@ impl SignatureSchema {
         }
     }
 
+    /// Build a schema from runtime field definitions (dynamic signatures).
+    pub fn from_dyn_parts(
+        instruction: &'static str,
+        input_fields: Vec<FieldSchema>,
+        output_fields: Vec<FieldSchema>,
+        output_format: OutputFormatContent,
+    ) -> Result<Self, String> {
+        ensure_unique_lm_names("input", &input_fields)?;
+        ensure_unique_lm_names("output", &output_fields)?;
+        Ok(Self {
+            instruction,
+            input_fields: input_fields.into_boxed_slice(),
+            output_fields: output_fields.into_boxed_slice(),
+            output_format: Arc::new(output_format),
+        })
+    }
+
     pub fn field_paths(&self) -> impl Iterator<Item = &FieldPath> {
         self.input_fields
             .iter()
@@ -348,7 +367,7 @@ fn emit_field(
         rust_name: path.display(),
         docs,
         type_ir,
-        shape: field.shape(),
+        shape: Some(field.shape()),
         path,
         constraints,
         input_render,
