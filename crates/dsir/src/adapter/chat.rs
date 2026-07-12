@@ -554,6 +554,192 @@ impl ChatAdapter {
         result
     }
 
+    /// Formats a [`RawExample`](crate::RawExample) input using schema field sections.
+    pub fn format_input_raw(
+        &self,
+        schema: &crate::SignatureSchema,
+        input: &crate::RawExample,
+    ) -> String {
+        let root = raw_example_to_baml_map(input);
+        let mut result = String::new();
+        for field_spec in schema.input_fields() {
+            if let Some(value) = value_for_path_relaxed(&root, field_spec.path()) {
+                result.push_str(&format!("[[ ## {} ## ]]\n", field_spec.lm_name));
+                result.push_str(&format_baml_value_for_prompt(value));
+                result.push_str("\n\n");
+            } else if let Some(json_val) = input.data.get(field_spec.lm_name).or_else(|| {
+                input.data.get(field_spec.rust_name.as_str())
+            }) {
+                let baml = json_to_baml(json_val);
+                result.push_str(&format!("[[ ## {} ## ]]\n", field_spec.lm_name));
+                result.push_str(&format_baml_value_for_prompt(&baml));
+                result.push_str("\n\n");
+            }
+        }
+        result.push_str(&self.format_response_instructions_schema(schema));
+        result
+    }
+
+    /// Formats a [`RawExample`](crate::RawExample) output for few-shot demos.
+    pub fn format_output_raw(
+        &self,
+        schema: &crate::SignatureSchema,
+        output: &crate::RawExample,
+    ) -> String {
+        let mut sections = Vec::new();
+        for field_spec in schema.output_fields() {
+            let json_val = output
+                .data
+                .get(field_spec.lm_name)
+                .or_else(|| output.data.get(field_spec.rust_name.as_str()));
+            if let Some(json_val) = json_val {
+                let baml = json_to_baml(json_val);
+                sections.push(format!(
+                    "[[ ## {} ## ]]\n{}",
+                    field_spec.lm_name,
+                    format_baml_value_for_prompt(&baml)
+                ));
+            }
+        }
+        let mut result = sections.join("\n\n");
+        result.push_str("\n\n[[ ## completed ## ]]\n");
+        result
+    }
+
+    /// Parses an LM response into a type-erased [`RawExample`](crate::RawExample).
+    #[allow(clippy::result_large_err)]
+    pub fn parse_output_raw(
+        &self,
+        schema: &crate::SignatureSchema,
+        response: &Message,
+    ) -> std::result::Result<(crate::RawExample, IndexMap<String, FieldMeta>), ParseError> {
+        let (output_map, metas) = self.parse_output_map(schema, response)?;
+        let mut data = std::collections::HashMap::new();
+        let mut output_keys = Vec::new();
+        for field in schema.output_fields() {
+            output_keys.push(field.lm_name.to_string());
+            if let Some(value) = output_map.get(field.lm_name).or_else(|| {
+                // path-inserted values use rust path leaf
+                navigate_map_by_path(&output_map, field.path())
+            }) {
+                data.insert(
+                    field.lm_name.to_string(),
+                    baml_to_json(value),
+                );
+            }
+        }
+        Ok((
+            crate::RawExample::new(data, Vec::new(), output_keys),
+            metas,
+        ))
+    }
+
+    /// Shared coercion loop that returns the assembled output map without typed conversion.
+    #[allow(clippy::result_large_err)]
+    pub fn parse_output_map(
+        &self,
+        schema: &crate::SignatureSchema,
+        response: &Message,
+    ) -> std::result::Result<
+        (
+            bamltype::baml_types::BamlMap<String, BamlValue>,
+            IndexMap<String, FieldMeta>,
+        ),
+        ParseError,
+    > {
+        let content = response.text_content();
+        let output_format = schema.output_format();
+        let sections = parse_sections(&content);
+
+        let mut metas = IndexMap::new();
+        let mut errors = Vec::new();
+        let mut output_map = bamltype::baml_types::BamlMap::new();
+
+        for field in schema.output_fields() {
+            let rust_name = field.rust_name.clone();
+            let type_ir = field.type_ir.clone();
+
+            let raw_text = match sections.get(field.lm_name) {
+                Some(text) => text.clone(),
+                None => {
+                    errors.push(ParseError::MissingField {
+                        field: rust_name.clone(),
+                        raw_response: content.to_string(),
+                    });
+                    continue;
+                }
+            };
+
+            let parsed: BamlValueWithFlags =
+                match jsonish::from_str(output_format, &type_ir, &raw_text, true) {
+                    Ok(value) => value,
+                    Err(err) => {
+                        errors.push(ParseError::CoercionFailed {
+                            field: rust_name.clone(),
+                            expected_type: type_ir.diagnostic_repr().to_string(),
+                            raw_text: raw_text.clone(),
+                            source: JsonishError::from(err),
+                        });
+                        continue;
+                    }
+                };
+
+            let baml_value: BamlValue = parsed.clone().into();
+            let mut flags = Vec::new();
+            collect_flags_recursive(&parsed, &mut flags);
+
+            let mut checks = Vec::new();
+            if let Ok(results) = run_user_checks(&baml_value, &type_ir) {
+                for (constraint, passed) in results {
+                    let label = constraint.label.as_deref().unwrap_or_else(|| {
+                        if constraint.level == ConstraintLevel::Assert {
+                            "assert"
+                        } else {
+                            "check"
+                        }
+                    });
+                    let expression = constraint.expression.to_string();
+                    if constraint.level == ConstraintLevel::Assert && !passed {
+                        errors.push(ParseError::AssertFailed {
+                            field: rust_name.clone(),
+                            label: label.to_string(),
+                            expression: expression.clone(),
+                            value: baml_value.clone(),
+                        });
+                    }
+                    if constraint.level == ConstraintLevel::Check {
+                        checks.push(ConstraintResult {
+                            label: label.to_string(),
+                            expression,
+                            passed,
+                        });
+                    }
+                }
+            }
+
+            metas.insert(
+                rust_name.clone(),
+                FieldMeta {
+                    raw_text,
+                    flags,
+                    checks,
+                },
+            );
+            insert_baml_at_path(&mut output_map, field.path(), baml_value);
+        }
+
+        if !errors.is_empty() {
+            let partial = if output_map.is_empty() {
+                None
+            } else {
+                Some(BamlValue::Map(output_map))
+            };
+            return Err(ParseError::Multiple { errors, partial });
+        }
+
+        Ok((output_map, metas))
+    }
+
     /// Formats a demo example as a (user_message, assistant_message) pair.
     ///
     /// Convenience method that calls [`format_user_message_typed`](ChatAdapter::format_user_message_typed)
@@ -967,6 +1153,38 @@ fn format_baml_value_for_prompt(value: &BamlValue) -> String {
         BamlValue::Null => "null".to_string(),
         other => serde_json::to_string(other).unwrap_or_else(|_| "<error>".to_string()),
     }
+}
+
+fn json_to_baml(value: &Value) -> BamlValue {
+    BamlValue::try_from(value.clone()).unwrap_or_else(|_| BamlValue::String(value.to_string()))
+}
+
+fn baml_to_json(value: &BamlValue) -> Value {
+    serde_json::to_value(value).unwrap_or(Value::Null)
+}
+
+fn raw_example_to_baml_map(example: &crate::RawExample) -> BamlValue {
+    let mut map = bamltype::baml_types::BamlMap::new();
+    for (k, v) in &example.data {
+        map.insert(k.clone(), json_to_baml(v));
+    }
+    BamlValue::Map(map)
+}
+
+fn navigate_map_by_path<'a>(
+    root: &'a bamltype::baml_types::BamlMap<String, BamlValue>,
+    path: &crate::FieldPath,
+) -> Option<&'a BamlValue> {
+    let mut parts = path.iter();
+    let first = parts.next()?;
+    let mut current = root.get(first)?;
+    for part in parts {
+        current = match current {
+            BamlValue::Class(_, map) | BamlValue::Map(map) => map.get(part)?,
+            _ => return None,
+        };
+    }
+    Some(current)
 }
 
 fn render_input_field(

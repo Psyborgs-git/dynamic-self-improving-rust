@@ -21,6 +21,7 @@
 //! building blocks directly.
 
 pub(crate) mod dyn_predictor;
+mod dyn_signature;
 mod errors;
 pub mod lm;
 pub mod module;
@@ -33,6 +34,9 @@ pub mod specials;
 
 pub use dyn_predictor::PredictState;
 pub(crate) use dyn_predictor::*;
+pub use dyn_signature::{
+    DynFieldType, DynPrimitive, DynSignature, DynSignatureBuilder, DynSignatureDoc,
+};
 pub use errors::{ConversionError, ErrorClass, JsonishError, LmError, ParseError, PredictError};
 pub use lm::*;
 pub use module::*;
