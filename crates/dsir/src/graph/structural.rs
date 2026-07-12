@@ -29,7 +29,7 @@ pub struct StructuralOptimizer {
 impl StructuralOptimizer {
     pub fn new() -> Self {
         Self {
-            strategies: StrategyKind::all().to_vec(),
+            strategies: StrategyKind::structural_candidates().to_vec(),
         }
     }
 
@@ -41,7 +41,7 @@ impl StructuralOptimizer {
         metric: &impl DynMetric,
     ) -> Result<StructuralReport> {
         let strategies = if self.strategies.is_empty() {
-            StrategyKind::all().to_vec()
+            StrategyKind::structural_candidates().to_vec()
         } else {
             self.strategies.clone()
         };
@@ -70,6 +70,7 @@ impl StructuralOptimizer {
                 best_state = DynPredictor::dump_state(&candidate.predictor);
                 // Ensure leaf matches chosen strategy schema (esp. CoT reasoning field).
                 module.predictor = StrategyFactory::create_predict_for_kind(signature, kind)?;
+                module.strategy = kind;
                 DynPredictor::load_state(&mut module.predictor, best_state.clone())?;
             }
         }

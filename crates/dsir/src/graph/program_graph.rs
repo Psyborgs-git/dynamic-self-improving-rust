@@ -231,17 +231,26 @@ impl DynModule for ProgramGraph {
                 node.predictor.input_keys().to_vec(),
                 Vec::new(),
             );
-            let predicted = node.predictor.call(step_input).await?;
+            let predicted = match node.strategy {
+                StrategyKind::BestOfN => {
+                    crate::predictors::best_of_n_call(&node.predictor, step_input, 3).await?
+                }
+                StrategyKind::Refine => {
+                    crate::predictors::refine_call(&node.predictor, step_input, 3, 1.0).await?
+                }
+                StrategyKind::Predict
+                | StrategyKind::ChainOfThought
+                | StrategyKind::ReAct
+                | StrategyKind::Agent => node.predictor.call(step_input).await?,
+            };
             metadata = predicted.metadata().clone();
             for (k, v) in &predicted.data {
                 workspace.insert(k.clone(), v.clone());
-                // Also namespace by node for multi-step wiring: node.field
                 workspace.insert(format!("{}.{}", node.name, k), v.clone());
             }
             last_output = predicted.into_inner();
         }
 
-        // Final workspace projection: last node's outputs preferred, else full workspace.
         if last_output.data.is_empty() {
             last_output = RawExample::new(workspace, Vec::new(), Vec::new());
         }
@@ -254,19 +263,33 @@ impl DynModule for ProgramGraph {
 #[facet(crate = facet)]
 pub struct GraphModule {
     pub predictor: DynPredict,
+    #[facet(skip, opaque)]
+    pub strategy: StrategyKind,
 }
 
 impl GraphModule {
     pub fn from_signature(signature: &DynSignature, kind: StrategyKind) -> Result<Self> {
         Ok(Self {
             predictor: StrategyFactory::create_predict_for_kind(signature, kind)?,
+            strategy: kind,
         })
     }
 }
 
 impl DynModule for GraphModule {
     async fn forward(&self, input: RawExample) -> Result<Predicted<RawExample>, PredictError> {
-        self.predictor.forward(input).await
+        match self.strategy {
+            StrategyKind::BestOfN => {
+                crate::predictors::best_of_n_call(&self.predictor, input, 3).await
+            }
+            StrategyKind::Refine => {
+                crate::predictors::refine_call(&self.predictor, input, 3, 1.0).await
+            }
+            StrategyKind::Predict
+            | StrategyKind::ChainOfThought
+            | StrategyKind::ReAct
+            | StrategyKind::Agent => self.predictor.forward(input).await,
+        }
     }
 }
 
