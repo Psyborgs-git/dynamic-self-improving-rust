@@ -25,9 +25,9 @@ tokio = { version = "1.46.1", features = ["full"] }
 async-trait = "0.1.83"
 anyhow = "1.0.99"
 bon = "3.7.0"
-bamltype = { path = "../bamltype" }
+bamltype = { version = "0.1.0", path = "../bamltype" }
 # Keep this direct pin in sync with workspace [patch.crates-io] for self-sufficient external path consumers.
-facet = { git = "https://github.com/darinkishore/facet", rev = "cc8613c97cd1ec03e63659db34a947989b45c8a5", default-features = false, features = ["std"] }
+facet = { version = "0.43.2", git = "https://github.com/darinkishore/facet", rev = "cc8613c97cd1ec03e63659db34a947989b45c8a5", default-features = false, features = ["std"] }
 thiserror = "2.0.17"
 dsir_macros = { version = "0.1.0", package = "dsir-macros", path = "../dsir-macros" }
 csv = { version = "1.3.1" }
@@ -40,11 +40,11 @@ kdam = "0.6.3"
 rand = "0.8.5"
 foyer = { version = "0.20.0", features = ["serde"]}
 tempfile = "3.23.0"
-rig-core = { git = "https://github.com/0xPlaygrounds/rig", rev="aee3b8bf6576ce41c9ac1dd82520752a65fa0127" }
+rig-core = { version = "0.31.0", git = "https://github.com/0xPlaygrounds/rig", rev="aee3b8bf6576ce41c9ac1dd82520752a65fa0127" }
 enum_dispatch = "0.3.13"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
-minijinja = { git = "https://github.com/boundaryml/minijinja.git", branch = "main", default-features = false, features = ["builtins", "serde"] }
+minijinja = { version = "2.21.0", git = "https://github.com/boundaryml/minijinja.git", branch = "main", default-features = false, features = ["builtins", "serde"] }
 
 [package.metadata.cargo-machete]
 ignored = ["rig-core"]
