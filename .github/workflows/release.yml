@@ -73,9 +73,13 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.archive }}" = "zip" ]; then
-            cd dist/${{ matrix.target }}
-            zip -r ../../dsir-${{ matrix.target }}.zip .
-            cd ../..
+            if [ "$RUNNER_OS" = "Windows" ]; then
+              pwsh -NoProfile -Command "Compress-Archive -Path 'dist/${{ matrix.target }}/*' -DestinationPath 'dsir-${{ matrix.target }}.zip' -Force"
+            else
+              cd dist/${{ matrix.target }}
+              zip -r ../../dsir-${{ matrix.target }}.zip .
+              cd ../..
+            fi
           else
             tar -czf dsir-${{ matrix.target }}.tar.gz -C dist/${{ matrix.target }} .
           fi
