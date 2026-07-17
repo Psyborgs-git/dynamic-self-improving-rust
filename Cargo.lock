@@ -1273,6 +1273,7 @@ dependencies = [
  "bamltype",
  "bon",
  "csv",
+ "dsir-macros",
  "enum_dispatch",
  "facet",
  "foyer",
@@ -1282,7 +1283,6 @@ dependencies = [
  "kdam",
  "minijinja",
  "parquet",
- "psyborgs-git-dsir-macros",
  "rand 0.8.6",
  "rayon",
  "regex",
@@ -1313,6 +1313,19 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "dsir-macros"
+version = "0.1.0"
+dependencies = [
+ "minijinja",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "serde_json",
+ "syn 2.0.118",
+ "trybuild",
 ]
 
 [[package]]
@@ -3351,19 +3364,6 @@ dependencies = [
  "rusty-fork",
  "tempfile",
  "unarray",
-]
-
-[[package]]
-name = "psyborgs-git-dsir-macros"
-version = "0.1.0"
-dependencies = [
- "minijinja",
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "serde_json",
- "syn 2.0.118",
- "trybuild",
 ]
 
 [[package]]

@@ -1,13 +1,13 @@
 [package]
-name = "psyborgs-git-dsir-macros"
+name = "dsir-macros"
 version = "0.1.0"
 edition = "2024"
 authors = ["dsir contributors"]
 description = "Derive macros for dsir"
 readme = "../../README.md"
-documentation = "https://github.com/psyborgs-git/dynamic-self-improving-rust"
-homepage = "https://github.com/psyborgs-git/dynamic-self-improving-rust"
-repository = "https://github.com/psyborgs-git/dynamic-self-improving-rust"
+documentation = "https://docs.rs/dsir-macros"
+homepage = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
 license = "Apache-2.0"
 
 [lib]
