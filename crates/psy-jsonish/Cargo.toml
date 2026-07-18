@@ -12,6 +12,7 @@ autobenches = false
 [lib]
 name = "jsonish"
 test = false
+doctest = false
 
 [lints.rust]
 dead_code = "allow"

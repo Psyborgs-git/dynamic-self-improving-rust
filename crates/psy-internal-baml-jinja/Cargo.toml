@@ -1,4 +1,6 @@
 [package]
+autotests = false
+autobenches = false
 name = "psy-internal-baml-jinja"
 edition = "2021"
 version = "0.1.0"
@@ -8,6 +10,8 @@ repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
 exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
 
 [lib]
+test = false
+doctest = false
 name = "internal_baml_jinja"
 
 [lints.rust]
