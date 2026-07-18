@@ -1,0 +1,35 @@
+[package]
+autotests = false
+autobenches = false
+edition = "2021"
+name = "psy-bstd"
+version = "0.1.0"
+license = "Apache-2.0"
+description = "BAML standard utilities (Psyborgs hard-fork)"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
+
+[lib]
+test = false
+doctest = false
+name = "bstd"
+
+[package.metadata.rustflags]
+RSTEST_TIMEOUT = "10"
+
+[lints.rust]
+dead_code = "deny"
+mismatched_lifetime_syntaxes = "deny"
+unused_imports = "deny"
+unused_variables = "deny"
+
+[dependencies]
+anyhow = "1.0"
+num = "0.4"
+rand = "0.8.5"
+regex = "1.10.4"
+
+[features]
+defaults = []
+internal = []
+skip-integ-tests = []

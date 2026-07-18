@@ -9,3 +9,31 @@ Licensed under the Apache License, Version 2.0.
 
 The `dsir` project vendors and modifies selected source from that repository.
 It does not depend on the crates.io `dspy-rs` package at build or runtime.
+
+This product also includes hard-forked BAML runtime crates (formerly under
+`vendor/baml/`), published under the `psy-*` crates.io namespace:
+
+  - psy-baml-ids
+  - psy-baml-types
+  - psy-bstd
+  - psy-internal-baml-diagnostics
+  - psy-internal-baml-jinja
+  - psy-jsonish
+
+Original BAML project: https://github.com/BoundaryML/baml
+Licensed under the Apache License, Version 2.0.
+
+This product also includes a hard-fork of the Facet reflection stack (pinned
+formerly to darinkishore/facet), published under:
+
+  - psy-facet
+  - psy-facet-core
+  - psy-facet-macros
+  - psy-facet-macros-impl
+  - psy-facet-macro-parse
+  - psy-facet-macro-types
+  - psy-facet-path
+  - psy-facet-reflect
+
+Original Facet project: https://github.com/facet-rs/facet
+Licensed under MIT OR Apache-2.0.

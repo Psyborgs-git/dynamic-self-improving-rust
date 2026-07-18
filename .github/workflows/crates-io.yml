@@ -15,31 +15,39 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config
-      - name: check dsir-macros availability
-        id: macros
+
+      # Order: psy-facet leafs → psy-baml leafs → mid-tier → bamltype → dsir
+      - name: publish crates in dependency order
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
-          version="$(cargo pkgid -p dsir-macros | sed -E 's|.*#||')"
-          if cargo info --registry crates-io "dsir-macros@${version}" >/dev/null 2>&1; then
-            echo "publish_macros=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping dsir-macros publish because version ${version} already exists on crates.io."
-          else
-            echo "publish_macros=true" >> "$GITHUB_OUTPUT"
-          fi
-      # ponytail: dependency order matters. Add or reorder crates here as the workspace changes.
-      - if: steps.macros.outputs.publish_macros == 'true'
-        run: cargo publish -p dsir-macros --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      - name: check crates.io dependency availability
-        id: deps
-        run: |
-          version="$(cargo pkgid -p dsir | sed -E 's|.*#||')"
-          if cargo info --registry crates-io "dsir@${version}" >/dev/null 2>&1; then
-            echo "publish_dsir=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping dsir publish because version ${version} already exists on crates.io."
-          elif cargo info --registry crates-io bamltype >/dev/null 2>&1; then
-            echo "publish_dsir=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish_dsir=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Skipping dsir publish because dependency bamltype is not available on crates.io."
-          fi
-      - if: steps.deps.outputs.publish_dsir == 'true'
-        run: cargo publish -p dsir --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          set -euo pipefail
+          crates=(
+            psy-facet-macro-types
+            psy-facet-macro-parse
+            psy-facet-macros-impl
+            psy-facet-macros
+            psy-facet-core
+            psy-facet-path
+            psy-facet-reflect
+            psy-facet
+            psy-baml-ids
+            psy-bstd
+            psy-internal-baml-diagnostics
+            psy-baml-types
+            psy-internal-baml-jinja
+            psy-jsonish
+            bamltype-derive
+            bamltype
+            dsir-macros
+            dsir
+          )
+          for crate in "${crates[@]}"; do
+            version="$(cargo pkgid -p "$crate" | sed -E 's|.*#||')"
+            if cargo info --registry crates-io "${crate}@${version}" >/dev/null 2>&1; then
+              echo "::notice::Skipping ${crate} publish because version ${version} already exists."
+            else
+              echo "Publishing ${crate}@${version}..."
+              cargo publish -p "$crate" --token "$CARGO_REGISTRY_TOKEN"
+            fi
+          done

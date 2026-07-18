@@ -1,0 +1,28 @@
+[package]
+autotests = false
+autobenches = false
+edition = "2021"
+name = "psy-internal-baml-diagnostics"
+version = "0.1.0"
+license = "Apache-2.0"
+description = "Internal diagnostics support for BAML (Psyborgs hard-fork)"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
+
+[lib]
+test = false
+doctest = false
+name = "internal_baml_diagnostics"
+
+[lints.rust]
+dead_code = "deny"
+mismatched_lifetime_syntaxes = "deny"
+unused_imports = "deny"
+unused_variables = "deny"
+
+[dependencies]
+colored = "2.1.0"
+pest = "2.8.1"
+strsim = "0.11.1"
+anyhow = "1.0"
+serde = { version = "1", features = ["alloc", "derive", "rc"] }

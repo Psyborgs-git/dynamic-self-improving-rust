@@ -1,0 +1,70 @@
+[package]
+autotests = false
+autobenches = false
+name = "psy-facet"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT OR Apache-2.0"
+description = "Reflection for Rust (Psyborgs hard-fork of facet 0.43.2 + generic attr patches)"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
+
+[lib]
+test = false
+doctest = false
+name = "facet"
+
+[features]
+default = ["std", "helpful-derive", "doc"]
+auto-traits = ["facet-core/auto-traits"]
+function = ["facet-macros/function"]
+reflect = ["dep:facet-reflect"]
+std = ["facet-core/std", "alloc"]
+all-impls = [
+  "alloc", "nonzero", "net", "bytes", "bytestring", "camino", "compact_str",
+  "uuid", "ulid", "ordered-float", "jiff02", "time", "chrono", "url",
+  "indexmap", "num-complex", "smartstring", "smol_str", "rust_decimal",
+  "lock_api", "iddqd", "yoke", "smallvec",
+]
+alloc = ["facet-core/alloc"]
+nonzero = ["facet-core/nonzero"]
+net = ["facet-core/net"]
+bytes = ["facet-core/bytes"]
+bytestring = ["facet-core/bytestring"]
+camino = ["facet-core/camino"]
+compact_str = ["facet-core/compact_str"]
+uuid = ["facet-core/uuid"]
+ulid = ["facet-core/ulid"]
+tendril = ["facet-core/tendril"]
+ordered-float = ["facet-core/ordered-float"]
+jiff02 = ["facet-core/jiff02"]
+time = ["facet-core/time"]
+chrono = ["facet-core/chrono"]
+url = ["facet-core/url"]
+ruint = ["facet-core/ruint"]
+indexmap = ["facet-core/indexmap"]
+num-complex = ["facet-core/num-complex"]
+smartstring = ["facet-core/smartstring"]
+smol_str = ["facet-core/smol_str"]
+rust_decimal = ["facet-core/rust_decimal"]
+lock_api = ["facet-core/lock_api"]
+iddqd = ["facet-core/iddqd"]
+yoke = ["facet-core/yoke"]
+smallvec = ["facet-core/smallvec"]
+tuples-12 = ["facet-core/tuples-12"]
+fn-ptr = ["facet-core/fn-ptr"]
+simd = ["facet-core/simd"]
+doc = ["facet-macros/doc"]
+helpful-derive = ["facet-macros/helpful-derive"]
+testfeat = []
+slow-tests = []
+
+[build-dependencies]
+autocfg = "1.5.0"
+
+[dependencies]
+facet-core = { package = "psy-facet-core", version = "0.1.0", path = "../psy-facet-core", default-features = false }
+facet-macros = { package = "psy-facet-macros", version = "0.1.0", path = "../psy-facet-macros", default-features = false }
+facet-reflect = { package = "psy-facet-reflect", version = "0.1.0", path = "../psy-facet-reflect", optional = true }
+static_assertions = { version = "1.1.0", optional = true }

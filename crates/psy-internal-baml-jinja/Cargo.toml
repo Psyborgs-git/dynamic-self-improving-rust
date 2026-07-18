@@ -1,0 +1,45 @@
+[package]
+autotests = false
+autobenches = false
+name = "psy-internal-baml-jinja"
+edition = "2021"
+version = "0.1.0"
+license = "Apache-2.0"
+description = "Internal BAML Jinja runtime (Psyborgs hard-fork)"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
+
+[lib]
+test = false
+doctest = false
+name = "internal_baml_jinja"
+
+[lints.rust]
+dead_code = "allow"
+mismatched_lifetime_syntaxes = "deny"
+unused_imports = "deny"
+unused_variables = "deny"
+
+[dependencies]
+baml-types = { package = "psy-baml-types", version = "0.1.0", path = "../psy-baml-types" }
+anyhow = "1.0"
+indexmap = { version = "2.1.0", features = ["serde"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+serde_yaml = "0.9"
+toon = "0.1.2"
+minijinja = { version = "2.21.0", default-features = false, features = [
+  "macros",
+  "builtins",
+  "debug",
+  "preserve_order",
+  "adjacent_loop_items",
+  "unicode",
+  "json",
+  "unstable_machinery",
+  "unstable_machinery_serde",
+  "custom_syntax",
+  "internal_debug",
+  "deserialization",
+  "serde",
+] }
+strum = { version = "0.26.2", features = ["derive"] }

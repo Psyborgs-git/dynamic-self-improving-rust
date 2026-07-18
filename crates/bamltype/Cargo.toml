@@ -3,21 +3,21 @@ name = "bamltype"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-publish = false
 description = "Facet-based BAML type generation"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
 
 [dependencies]
-# Facet for reflection
-# Keep these direct pins in sync with workspace [patch.crates-io] for self-sufficient external path consumers.
-facet = { git = "https://github.com/darinkishore/facet", rev = "cc8613c97cd1ec03e63659db34a947989b45c8a5", default-features = false, features = ["std", "doc"] }
-facet-reflect = { git = "https://github.com/darinkishore/facet", rev = "cc8613c97cd1ec03e63659db34a947989b45c8a5", default-features = false, features = ["std"] }
+# Facet for reflection (Psyborgs hard-fork — no upstream git pins)
+facet = { package = "psy-facet", version = "0.1.0", path = "../psy-facet", default-features = false, features = ["std", "doc"] }
+facet-reflect = { package = "psy-facet-reflect", version = "0.1.0", path = "../psy-facet-reflect", default-features = false, features = ["std"] }
 
-# BAML crates for schema/parsing
+# Hard-forked BAML crates (owned Psyborgs namespace)
 anyhow = "1.0"
-baml-types = { path = "../../vendor/baml/crates/baml-types" }
-internal-baml-jinja = { path = "../../vendor/baml/crates/internal-baml-jinja" }
-jsonish = { path = "../../vendor/baml/crates/jsonish" }
-minijinja = { git = "https://github.com/boundaryml/minijinja.git", branch = "main", default-features = false, features = [
+baml-types = { package = "psy-baml-types", version = "0.1.0", path = "../psy-baml-types" }
+internal-baml-jinja = { package = "psy-internal-baml-jinja", version = "0.1.0", path = "../psy-internal-baml-jinja" }
+jsonish = { package = "psy-jsonish", version = "0.1.0", path = "../psy-jsonish" }
+minijinja = { version = "2.21.0", default-features = false, features = [
   "macros",
   "builtins",
   "debug",
@@ -34,7 +34,7 @@ minijinja = { git = "https://github.com/boundaryml/minijinja.git", branch = "mai
 ] }
 
 # Attribute macro (re-exported)
-bamltype-derive = { path = "../bamltype-derive" }
+bamltype-derive = { version = "0.1.0", path = "../bamltype-derive" }
 
 # Utils
 indexmap = "2.1"

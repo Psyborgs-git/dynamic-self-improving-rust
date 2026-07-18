@@ -1,0 +1,24 @@
+[package]
+autotests = false
+autobenches = false
+name = "psy-facet-path"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT OR Apache-2.0"
+description = "Path tracking for navigating Facet type structures (Psyborgs hard-fork)"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
+
+[lib]
+test = false
+doctest = false
+name = "facet_path"
+
+[features]
+default = ["std"]
+std = ["alloc", "facet-core/std"]
+alloc = ["facet-core/alloc"]
+
+[dependencies]
+facet-core = { package = "psy-facet-core", version = "0.1.0", path = "../psy-facet-core", default-features = false }

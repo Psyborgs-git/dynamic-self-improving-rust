@@ -1,0 +1,58 @@
+[package]
+edition = "2021"
+name = "psy-jsonish"
+version = "0.1.0"
+license = "Apache-2.0"
+description = "Jsonish parser and coercer for BAML (Psyborgs hard-fork)"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
+autotests = false
+autobenches = false
+
+[lib]
+name = "jsonish"
+test = false
+doctest = false
+
+[lints.rust]
+dead_code = "allow"
+mismatched_lifetime_syntaxes = "deny"
+unused_imports = "allow"
+unused_variables = "allow"
+
+[lints.clippy]
+type_complexity = "allow"
+
+[dependencies]
+anyhow = "1.0"
+baml-types = { package = "psy-baml-types", version = "0.1.0", path = "../psy-baml-types" }
+bstd = { package = "psy-bstd", version = "0.1.0", path = "../psy-bstd" }
+internal-baml-jinja = { package = "psy-internal-baml-jinja", version = "0.1.0", path = "../psy-internal-baml-jinja" }
+log = "0.4.20"
+indexmap = { version = "2.1.0", features = ["serde"] }
+strsim = "0.11.1"
+serde_json = { version = "1", features = ["float_roundtrip", "preserve_order"] }
+serde = { version = "1", features = ["alloc", "derive", "rc"] }
+test-log = "0.2.16"
+regex = "1.10.4"
+minijinja = { version = "2.21.0", default-features = false, features = [
+  "macros",
+  "builtins",
+  "debug",
+  "preserve_order",
+  "adjacent_loop_items",
+  "unicode",
+  "json",
+  "unstable_machinery",
+  "unstable_machinery_serde",
+  "custom_syntax",
+  "internal_debug",
+  "deserialization",
+  "serde",
+] }
+thiserror = "2.0.17"
+unicode-normalization = "0.1.24"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { version = "1.8.0", features = ["v4", "v7", "serde", "js"] }
+getrandom = { version = "0.2.15", features = ["js"] }
