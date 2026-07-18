@@ -20,7 +20,7 @@ quote = "1"
 proc-macro2 = "1"
 proc-macro-crate = "3.2"
 serde_json = { version = "1.0.143", features = ["preserve_order"] }
-minijinja = { version = "2.21.0", git = "https://github.com/boundaryml/minijinja.git", branch = "main", default-features = false, features = ["serde"] }
+minijinja = { version = "2.21.0", default-features = false, features = ["serde"] }
 
 [dev-dependencies]
 trybuild = "1.0.110"

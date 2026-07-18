@@ -1,0 +1,137 @@
+use super::*;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Enum variant selection
+////////////////////////////////////////////////////////////////////////////////////////////////////
+impl<'facet, const BORROW: bool> Partial<'facet, BORROW> {
+    /// Get the currently selected variant for an enum
+    pub fn selected_variant(&self) -> Option<Variant> {
+        let frame = self.frames().last()?;
+
+        match &frame.tracker {
+            Tracker::Enum { variant, .. } => Some(**variant),
+            _ => None,
+        }
+    }
+
+    /// Get the currently selected variant's plan metadata.
+    ///
+    /// Returns the VariantPlanMeta for the selected variant, which contains precomputed
+    /// information like `has_flatten` and `field_lookup` for fast field lookups.
+    pub fn selected_variant_plan(&self) -> Option<&crate::typeplan::VariantPlanMeta> {
+        let frame = self.frames().last()?;
+        let enum_plan = self.root_plan.enum_plan_by_id(frame.type_plan)?;
+
+        match &frame.tracker {
+            Tracker::Enum { variant_idx, .. } => self
+                .root_plan
+                .variants(enum_plan.variants)
+                .get(*variant_idx),
+            _ => None,
+        }
+    }
+
+    /// Find a variant by name in the current enum.
+    ///
+    /// This searches by effective name (respecting `#[facet(rename = "...")]` attributes).
+    pub fn find_variant(&self, variant_name: &str) -> Option<(usize, &'static Variant)> {
+        let frame = self.frames().last()?;
+        let enum_plan = self.root_plan.enum_plan_by_id(frame.type_plan)?;
+        let idx = enum_plan.variant_lookup.find(variant_name)?;
+        let variants = self.root_plan.variants(enum_plan.variants);
+        Some((idx, variants[idx].variant))
+    }
+
+    /// Assuming the current frame is an enum, this selects a variant by index
+    /// (0-based, in declaration order).
+    ///
+    /// For example:
+    ///
+    /// ```rust,no_run
+    /// enum E { A, B, C }
+    /// ```
+    ///
+    /// Calling `select_nth_variant(2)` would select variant `C`.
+    ///
+    /// This will return an error if the current frame is anything other than fully-uninitialized.
+    /// In other words, it's not possible to "switch to a different variant" once you've selected one.
+    ///
+    /// This does _not_ push a frame on the stack.
+    pub fn select_nth_variant(mut self, index: usize) -> Result<Self, ReflectError> {
+        let frame = self.frames().last().unwrap();
+        let enum_type = frame.get_enum_type().map_err(|e| self.err(e))?;
+
+        if index >= enum_type.variants.len() {
+            return Err(self.err(ReflectErrorKind::OperationFailed {
+                shape: frame.allocated.shape(),
+                operation: "variant index out of bounds",
+            }));
+        }
+        let variant = &enum_type.variants[index];
+
+        self.select_variant_internal(&enum_type, variant, index)?;
+        Ok(self)
+    }
+
+    /// Pushes a variant for enum initialization by name.
+    ///
+    /// This searches by effective name (respecting `#[facet(rename = "...")]` attributes).
+    ///
+    /// See [Self::select_nth_variant] for more notes.
+    pub fn select_variant_named(mut self, variant_name: &str) -> Result<Self, ReflectError> {
+        let frame = self.frames().last().unwrap();
+        let enum_type = frame.get_enum_type().map_err(|e| self.err(e))?;
+        let shape = frame.allocated.shape();
+
+        // Use precomputed VariantLookup for fast lookup
+        let enum_plan = self.root_plan.enum_plan_by_id(frame.type_plan).unwrap();
+        let variant_idx = enum_plan.variant_lookup.find(variant_name).ok_or_else(|| {
+            self.err(ReflectErrorKind::OperationFailed {
+                shape,
+                operation: "No variant found with the given name",
+            })
+        })?;
+        let variant = &enum_type.variants[variant_idx];
+
+        self.select_variant_internal(&enum_type, variant, variant_idx)?;
+        Ok(self)
+    }
+
+    /// Selects a given enum variant by discriminant. If none of the variants
+    /// of the frame's enum have that discriminant, this returns an error.
+    ///
+    /// See [Self::select_nth_variant] for more notes.
+    pub fn select_variant(mut self, discriminant: i64) -> Result<Self, ReflectError> {
+        // Check all invariants early before making any changes
+        let frame = self.frames().last().unwrap();
+
+        // Check that we're dealing with an enum
+        let enum_type = match frame.allocated.shape().ty {
+            Type::User(UserType::Enum(e)) => e,
+            _ => {
+                return Err(self.err(ReflectErrorKind::WasNotA {
+                    expected: "enum",
+                    actual: frame.allocated.shape(),
+                }));
+            }
+        };
+
+        // Find the variant with the matching discriminant
+        let Some((variant_idx, variant)) = enum_type
+            .variants
+            .iter()
+            .enumerate()
+            .find(|(_, v)| v.discriminant == Some(discriminant))
+        else {
+            return Err(self.err(ReflectErrorKind::OperationFailed {
+                shape: frame.allocated.shape(),
+                operation: "No variant found with the given discriminant",
+            }));
+        };
+
+        // Update the frame tracker to select the variant
+        self.select_variant_internal(&enum_type, variant, variant_idx)?;
+
+        Ok(self)
+    }
+}

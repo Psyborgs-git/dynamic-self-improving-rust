@@ -1,0 +1,488 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+#![warn(missing_docs)]
+#![warn(clippy::std_instead_of_core)]
+#![warn(clippy::std_instead_of_alloc)]
+//! Psyborgs hard-fork of the `facet` reflection crate.
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(builtin_syntax))]
+#![cfg_attr(docsrs, feature(prelude_import))]
+#![cfg_attr(docsrs, allow(internal_features))]
+
+pub use facet_core::*;
+
+pub use facet_macros::*;
+
+#[cfg(feature = "reflect")]
+pub use facet_reflect::*;
+
+/// Built-in facet attributes.
+///
+/// These attributes are used with the `#[facet(...)]` syntax without a namespace prefix.
+/// For example: `#[facet(sensitive)]`, `#[facet(rename = "name")]`, `#[facet(skip)]`.
+///
+/// Function-based attributes like `default`, `skip_serializing_if`, and `invariants`
+/// store type-erased function pointers. The `proxy` attribute stores a Shape reference
+/// for custom serialization/deserialization via TryFrom conversions.
+pub mod builtin {
+    // Re-export function pointer types for grammar variants
+    pub use crate::DefaultInPlaceFn;
+    pub use crate::InvariantsFn;
+    pub use crate::SkipSerializingIfFn;
+    pub use crate::TruthyFn;
+    pub use crate::ValidatorFn;
+
+    // Generate built-in attribute grammar.
+    // Uses empty namespace "" for built-in facet attributes.
+    // The `builtin;` flag tells the generator this is inside the facet crate itself,
+    // so definition-time code uses `crate::` instead of `::facet::`.
+    crate::define_attr_grammar! {
+        builtin;
+        ns "";
+        crate_path ::facet::builtin;
+
+        /// Built-in facet attribute types.
+        ///
+        /// These represent the runtime-queryable built-in attributes.
+        /// Attributes with function pointers store the actual function reference.
+        ///
+        /// Attributes annotated with `#[storage(flag)]` are stored in `FieldFlags` for O(1) access.
+        /// Attributes annotated with `#[storage(field)]` are stored in dedicated `Field` struct fields.
+        /// Attributes without `#[storage(...)]` are stored in the `attributes` slice (O(n) lookup).
+        /// <https://facet.rs/guide/attributes/>
+        pub enum Attr {
+            /// Marks a field as containing sensitive data that should be redacted in debug output.
+            ///
+            /// Usage: `#[facet(sensitive)]`
+            #[storage(flag)]
+            Sensitive,
+
+            /// Marks a container as opaque - its inner fields don't need to implement Facet.
+            ///
+            /// Usage: `#[facet(opaque)]`
+            Opaque,
+
+            /// Marks a container as transparent - de/serialization is forwarded to the inner type.
+            /// Used for newtype patterns.
+            ///
+            /// Usage: `#[facet(transparent)]`
+            Transparent,
+
+            /// Marks a struct as a metadata container - it serializes transparently through
+            /// its non-metadata field while preserving metadata for formats that support it.
+            ///
+            /// Rules:
+            /// 1. Exactly one non-metadata field (the "value" field)
+            /// 2. At least one metadata field (marked with `#[facet(metadata = "...")]`)
+            /// 3. No duplicate metadata kinds
+            ///
+            /// During serialization, the container is transparent - `Documented<String>` serializes
+            /// exactly like `String`. However, formats that support metadata (like Styx) can access
+            /// the metadata fields and emit them appropriately (e.g., as doc comments).
+            ///
+            /// Usage: `#[facet(metadata_container)]`
+            ///
+            /// # Example
+            ///
+            /// ```ignore
+            /// #[derive(Facet)]
+            /// #[facet(metadata_container)]
+            /// struct Documented<T> {
+            ///     value: T,
+            ///     #[facet(metadata = "doc")]
+            ///     doc: Option<Vec<String>>,
+            /// }
+            /// ```
+            #[target(container)]
+            MetadataContainer,
+
+            /// Marks a field to be flattened into its parent structure.
+            ///
+            /// Usage: `#[facet(flatten)]`
+            #[storage(flag)]
+            Flatten,
+
+            /// Marks a field as a child node (for hierarchical formats like XML).
+            ///
+            /// Usage: `#[facet(child)]`
+            #[storage(flag)]
+            Child,
+
+            /// Denies unknown fields during deserialization.
+            ///
+            /// Usage: `#[facet(deny_unknown_fields)]`
+            DenyUnknownFields,
+
+            /// Uses the default value when the field is missing during deserialization.
+            /// Stores a function pointer that produces the default value in-place.
+            ///
+            /// Usage: `#[facet(default)]` (uses Default trait) or `#[facet(default = expr)]`
+            ///
+            /// When no explicit value is given (`#[facet(default)]`), the Rust field type's
+            /// `Default::default()` is used. This requires the field type to implement Default.
+            /// For opaque fields, this uses the underlying Rust type's Default, not the
+            /// Facet shape's default.
+            ///
+            /// Note: The HAS_DEFAULT flag is also set when this attribute is present.
+            Default(make_t or $ty::default()),
+
+            /// Skips both serialization and deserialization of this field.
+            ///
+            /// Usage: `#[facet(skip)]`
+            #[storage(flag)]
+            Skip,
+
+            /// Skips serialization of this field.
+            ///
+            /// Usage: `#[facet(skip_serializing)]`
+            #[storage(flag)]
+            SkipSerializing,
+
+            /// Conditionally skips serialization based on a predicate function.
+            /// Stores a type-erased function pointer: `fn(PtrConst) -> bool`.
+            ///
+            /// Usage: `#[facet(skip_serializing_if = is_empty)]`
+            SkipSerializingIf(predicate SkipSerializingIfFn),
+
+            /// Skips serialization unless the value is truthy.
+            /// Uses the type's registered truthiness predicate when available.
+            ///
+            /// Usage: `#[facet(skip_unless_truthy)]`
+            SkipUnlessTruthy,
+
+            /// Skips deserialization of this field (uses default value).
+            ///
+            /// Usage: `#[facet(skip_deserializing)]`
+            #[storage(flag)]
+            SkipDeserializing,
+
+            /// For enums: variants are serialized without a discriminator tag.
+            ///
+            /// Usage: `#[facet(untagged)]`
+            Untagged,
+
+            /// Marks an enum variant as a catch-all for unknown variant names.
+            /// When deserializing, if no variant matches the input tag,
+            /// the variant marked with `other` will be used.
+            ///
+            /// Usage: `#[facet(other)]`
+            Other,
+
+            /// Serializes/Deserializers enum to/from integer based on variant discriminant.
+            ///
+            /// Usage: `#[facet(is_numeric)]`
+            IsNumeric,
+
+            /// Marks an enum as having cow-like semantics (Borrowed/Owned variants).
+            ///
+            /// When deserializing into a cow-like enum and borrowing is not available
+            /// (e.g., from JSON), the deserializer automatically selects the `Owned` variant
+            /// instead of the `Borrowed` variant. This allows types like `Stem<'a>` to be
+            /// deserialized from formats that cannot provide borrowed data.
+            ///
+            /// Requirements:
+            /// - The enum must have exactly 2 variants named `Borrowed` and `Owned`
+            /// - `Borrowed` typically contains a reference type (e.g., `&'a str`)
+            /// - `Owned` contains an owned equivalent (e.g., `String`, `CompactString`)
+            ///
+            /// Usage: `#[facet(cow)]`
+            ///
+            /// # Example
+            ///
+            /// ```ignore
+            /// #[derive(Facet)]
+            /// #[facet(cow)]
+            /// #[repr(u8)]
+            /// pub enum Stem<'a> {
+            ///     Borrowed(&'a str),
+            ///     Owned(CompactString),
+            /// }
+            /// ```
+            #[target(container)]
+            Cow,
+
+            /// Marks a type as Plain Old Data.
+            ///
+            /// POD types have no invariants - any combination of valid field values
+            /// produces a valid instance. This enables safe mutation through reflection
+            /// (poke operations).
+            ///
+            /// Usage: `#[facet(pod)]`
+            Pod,
+
+            /// Renames a field or variant during serialization/deserialization.
+            ///
+            /// Usage: `#[facet(rename = "new_name")]`
+            #[storage(field)]
+            Rename(&'static str),
+
+            /// Renames all fields/variants using a case conversion rule.
+            ///
+            /// Usage: `#[facet(rename_all = "camelCase")]`
+            ///
+            /// Supported rules: camelCase, snake_case, PascalCase, SCREAMING_SNAKE_CASE,
+            /// kebab-case, SCREAMING-KEBAB-CASE
+            RenameAll(&'static str),
+
+            /// Aliases a field or variant during deserialization.
+            ///
+            /// Usage: `#[facet(alias = "additional_name")]`
+            ///
+            /// Allows for deserializing a field from either the alias or the original name.
+            #[storage(field)]
+            Alias(&'static str),
+
+            /// Tag attribute with dual usage:
+            ///
+            /// **Container-level (with value):** For internally/adjacently tagged enums,
+            /// specifies the field name for the discriminator tag.
+            ///
+            /// Usage: `#[facet(tag = "type")]`
+            ///
+            /// **Field-level (without value):** Within an `#[facet(other)]` variant,
+            /// marks a field as capturing the variant tag name when deserializing
+            /// self-describing formats that emit VariantTag events.
+            ///
+            /// Usage: `#[facet(tag)]` on a String field
+            Tag(Option<&'static str>),
+
+            /// Content attribute with dual usage:
+            ///
+            /// **Container-level (with value):** For adjacently tagged enums,
+            /// specifies the field name for the variant content.
+            ///
+            /// Usage: `#[facet(content = "data")]`
+            ///
+            /// **Field-level (without value):** Within an `#[facet(other)]` variant,
+            /// marks a field as capturing the variant payload when deserializing
+            /// self-describing formats that emit VariantTag events.
+            ///
+            /// Usage: `#[facet(content)]` on a field
+            Content(Option<&'static str>),
+
+            /// Identifies the type with a tag for self-describing formats.
+            ///
+            /// Usage: `#[facet(type_tag = "com.example.MyType")]`
+            TypeTag(&'static str),
+
+            /// Type invariant validation function.
+            /// Stores a type-erased function pointer: `fn(PtrConst) -> bool`.
+            ///
+            /// Usage: `#[facet(invariants = validate_fn)]`
+            Invariants(predicate InvariantsFn),
+
+            /// Declares the truthiness predicate for this container type.
+            /// Stores a type-erased function pointer: `fn(PtrConst) -> bool`.
+            ///
+            /// Usage: `#[facet(truthy = Self::is_truthy)]`
+            Truthy(predicate TruthyFn),
+
+            /// Applies `skip_unless_truthy` to every field in the container.
+            ///
+            /// Usage: `#[facet(skip_all_unless_truthy)]`
+            SkipAllUnlessTruthy,
+
+            /// Proxy type for serialization and deserialization.
+            /// The proxy type must implement `TryFrom<ProxyType> for FieldType` (for deserialization)
+            /// and `TryFrom<&FieldType> for ProxyType` (for serialization).
+            ///
+            /// Usage: `#[facet(proxy = MyProxyType)]`
+            Proxy(shape_type),
+
+            /// Marks a field as having a recursive type that needs lazy shape resolution.
+            ///
+            /// Use this on fields where the type recursively contains the parent type,
+            /// such as `Vec<Self>`, `Box<Self>`, `Option<Arc<Self>>`, etc.
+            ///
+            /// Without this attribute, such recursive types would cause a compile-time cycle.
+            /// With this attribute, the field's shape is resolved lazily via a closure.
+            ///
+            /// Usage: `#[facet(recursive_type)]`
+            ///
+            /// # Example
+            ///
+            /// ```ignore
+            /// #[derive(Facet)]
+            /// struct Node {
+            ///     value: i32,
+            ///     #[facet(recursive_type)]
+            ///     children: Vec<Node>,
+            /// }
+            /// ```
+            RecursiveType,
+
+            // Note: `traits(...)` and `bound` are compile-time-only directives
+            // processed by the derive macro. They are not stored as runtime attributes.
+            // See DeclaredTraits in facet-macros-impl/src/parsed.rs for their handling.
+
+            /// Adds custom trait bounds to the generated Facet impl.
+            /// The bounds are added to the where clause alongside auto-generated bounds.
+            ///
+            /// Usage: `#[facet(where T: Clone + Send)]`
+            ///
+            /// When you need a type parameter to implement Facet (e.g., for proxy types),
+            /// use a higher-ranked trait bound: `#[facet(where T: for<'f> Facet<'f>)]`
+            ///
+            /// If HRTB is too restrictive, you can use the internal lifetime `'ʄ` directly:
+            /// `#[facet(where T: Facet<'ʄ>)]` (note: `'ʄ` is internal and may change).
+            Where(&'static str),
+
+            /// Adds custom traits to the generated Facet impl.
+            ///
+            /// Usage: `#[facet(traits(Trait1, Trait2))]`
+            ///
+            /// When you need a type parameter to implement Facet (e.g., for proxy types),
+            /// use a higher-ranked trait bound: `#[facet(traits(for<'f> Facet<'f>))]`
+            ///
+            /// If HRTB is too restrictive, you can use the internal lifetime `'ʄ` directly:
+            /// `#[facet(traits(Facet<'ʄ>))]` (note: `'ʄ` is internal and may change).
+            Traits(&'static str),
+
+            /// Automatically identifies which traits are implemented by the type.
+            AutoTraits,
+
+            /// Adds metadata to the annotated field.
+            Metadata(&'static str),
+
+            /// Specifies `facet`'s path in case it's not in the default location.
+            Crate(&'static str),
+
+            // Note: `from_ref` and `try_from_ref` are compile-time-only directives
+            // processed by the derive macro. They are not stored as runtime attributes.
+            // They generate a `try_from` function in the VTable.
+            // The derive macro reads these from raw PFacetAttr tokens, not from Attr values.
+            // The reference type is inferred from the function signature.
+
+            /// Infallible constructor from a reference type.
+            /// The function must have signature `fn(&'a R) -> Self` where R is the source type.
+            ///
+            /// Usage: `#[facet(from_ref = Self::from_ref)]`
+            ///
+            /// Note: This is compile-time only. The path is read from raw tokens by the derive macro.
+            FromRef(arbitrary),
+
+            /// Fallible constructor from a reference type.
+            /// The function must have signature `fn(&'a R) -> Result<Self, E>` where R is the source type.
+            ///
+            /// Usage: `#[facet(try_from_ref = Self::try_from_ref)]`
+            ///
+            /// Note: This is compile-time only. The path is read from raw tokens by the derive macro.
+            TryFromRef(arbitrary),
+
+            // ================================================================
+            // DOM-related attributes (for XML/HTML serialization)
+            // ================================================================
+
+            /// Marks a field as an XML/HTML attribute on the element tag.
+            ///
+            /// Usage: `#[facet(attribute)]`
+            ///
+            /// Fields marked as attributes are serialized as XML/HTML element attributes
+            /// rather than child elements or text content.
+            Attribute,
+
+            /// Marks a field as text content within an XML/HTML element.
+            ///
+            /// Usage: `#[facet(text)]`
+            ///
+            /// Fields marked as text contain the text content of the element,
+            /// as opposed to child elements or attributes.
+            Text,
+
+            /// Marks an enum variant as a catch-all for custom/unknown elements.
+            ///
+            /// Usage: `#[facet(custom_element)]`
+            ///
+            /// When deserializing XML/HTML, unknown element tags are captured
+            /// by the variant marked with `custom_element`.
+            CustomElement
+        }
+    }
+
+    // Manual Facet impl for Attr since we can't use the derive macro inside the facet crate.
+    // This is a simplified opaque implementation.
+    unsafe impl crate::Facet<'_> for Attr {
+        const SHAPE: &'static crate::Shape = &crate::Shape {
+            id: crate::Shape::id_of::<Self>(),
+            decl_id: crate::DeclId::new(crate::decl_id_hash("@facet#enum#Attr")),
+            layout: crate::Shape::layout_of::<Self>(),
+            vtable: crate::VTableErased::Direct(&crate::VTableDirect::empty()),
+            type_ops: None,
+            marker_traits: crate::MarkerTraits::empty(),
+            type_identifier: "facet::builtin::Attr",
+            module_path: None, // Foreign type, no module path available
+            source_file: None,
+            source_line: None,
+            source_column: None,
+            ty: crate::Type::User(crate::UserType::Opaque),
+            def: crate::Def::Undefined,
+            type_params: &[],
+            doc: &[],
+            attributes: &[],
+            type_tag: None,
+            inner: None,
+            builder_shape: None,
+            type_name: None,
+            proxy: None,
+            format_proxies: &[],
+            variance: crate::VarianceDesc::BIVARIANT,
+            flags: crate::ShapeFlags::empty(),
+            tag: None,
+            content: None,
+            rename: None,
+        };
+    }
+}
+
+#[cfg(feature = "static_assertions")]
+pub use static_assertions;
+
+/// Define an attribute grammar with type-safe parsing.
+///
+/// This macro generates:
+/// - The attribute types (enum + structs)
+/// - A `__parse_attr!` macro for parsing attribute tokens
+/// - Re-exports for the necessary proc-macros
+///
+/// # Example
+///
+/// ```ignore
+/// facet::define_attr_grammar! {
+///     pub enum Attr {
+///         /// Skip this field entirely
+///         Skip,
+///         /// Rename to a different name
+///         Rename(&'static str),
+///         /// Database column configuration
+///         Column(Column),
+///     }
+///
+///     pub struct Column {
+///         /// Override the database column name
+///         pub name: Option<&'static str>,
+///         /// Mark as primary key
+///         pub primary_key: bool,
+///     }
+/// }
+/// ```
+///
+/// This generates an `Attr` enum and `Column` struct with the specified fields,
+/// along with a `__parse_attr!` macro that can parse attribute syntax like:
+///
+/// - `skip` → `Attr::Skip`
+/// - `rename("users")` → `Attr::Rename("users")`
+/// - `column(name = "user_id", primary_key)` → `Attr::Column(Column { name: Some("user_id"), primary_key: true })`
+///
+/// # Supported Field Types
+///
+/// | Grammar Type | Rust Type | Syntax |
+/// |--------------|-----------|--------|
+/// | `bool` | `bool` | `flag` or `flag = true` |
+/// | `&'static str` | `&'static str` | `name = "value"` |
+/// | `Option<&'static str>` | `Option<&'static str>` | `name = "value"` (optional) |
+/// | `Option<bool>` | `Option<bool>` | `flag = true` (optional) |
+#[macro_export]
+macro_rules! define_attr_grammar {
+    ($($grammar:tt)*) => {
+        $crate::__make_parse_attr! { $($grammar)* }
+    };
+}

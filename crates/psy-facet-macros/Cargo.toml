@@ -1,0 +1,22 @@
+[package]
+name = "psy-facet-macros"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT OR Apache-2.0"
+description = "Derive macro for the Facet trait (Psyborgs hard-fork)"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
+
+[lib]
+name = "facet_macros"
+proc-macro = true
+
+[features]
+default = ["helpful-derive"]
+function = ["facet-macros-impl/function"]
+doc = ["facet-macros-impl/doc"]
+helpful-derive = ["facet-macros-impl/helpful-derive"]
+
+[dependencies]
+facet-macros-impl = { package = "psy-facet-macros-impl", version = "0.1.0", path = "../psy-facet-macros-impl", default-features = false }

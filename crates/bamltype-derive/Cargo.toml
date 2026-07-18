@@ -3,8 +3,9 @@ name = "bamltype-derive"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-publish = false
 description = "Attribute macro for facet-based BAML type generation (proc-macro crate)"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
 
 [lib]
 proc-macro = true

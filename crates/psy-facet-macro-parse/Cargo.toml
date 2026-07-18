@@ -1,0 +1,17 @@
+[package]
+name = "psy-facet-macro-parse"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT OR Apache-2.0"
+description = "Parser for facet derive macros (Psyborgs hard-fork)"
+repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
+exclude = [".git*", "docs/*", "tests/*", "benches/*", "*.md"]
+
+[lib]
+name = "facet_macro_parse"
+
+[dependencies]
+facet-macro-types = { package = "psy-facet-macro-types", version = "0.1.0", path = "../psy-facet-macro-types" }
+proc-macro2 = "1"
+quote = "1"

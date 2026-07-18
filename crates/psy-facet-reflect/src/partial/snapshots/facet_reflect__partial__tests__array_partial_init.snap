@@ -1,0 +1,5 @@
+---
+source: facet-reflect/src/partial/tests.rs
+expression: "Partial::alloc::<[u32;\n3]>().unwrap().set_nth_element(0,\n42u32).unwrap().set_nth_element(2, 44u32).unwrap().build().unwrap_err()"
+---
+Value '[u32; 3]' was not initialized
