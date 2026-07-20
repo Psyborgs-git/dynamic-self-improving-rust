@@ -512,7 +512,7 @@ dependencies = [
 
 [[package]]
 name = "bamltype"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "bamltype-derive",
@@ -534,7 +534,7 @@ dependencies = [
 
 [[package]]
 name = "bamltype-derive"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "convert_case",
  "proc-macro-crate",
@@ -1226,7 +1226,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "dsir"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "arrow",
@@ -1263,7 +1263,7 @@ dependencies = [
 
 [[package]]
 name = "dsir-lab-ui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -1278,7 +1278,7 @@ dependencies = [
 
 [[package]]
 name = "dsir-macros"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "minijinja",
  "proc-macro-crate",
@@ -1291,7 +1291,7 @@ dependencies = [
 
 [[package]]
 name = "dsir-registry"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -3154,7 +3154,7 @@ dependencies = [
 
 [[package]]
 name = "psy-baml-ids"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "getrandom 0.2.17",
@@ -3166,7 +3166,7 @@ dependencies = [
 
 [[package]]
 name = "psy-baml-types"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -3185,7 +3185,7 @@ dependencies = [
 
 [[package]]
 name = "psy-bstd"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "num",
@@ -3195,7 +3195,7 @@ dependencies = [
 
 [[package]]
 name = "psy-facet"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "autocfg",
  "psy-facet-core",
@@ -3206,7 +3206,7 @@ dependencies = [
 
 [[package]]
 name = "psy-facet-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "autocfg",
  "bytes",
@@ -3238,7 +3238,7 @@ dependencies = [
 
 [[package]]
 name = "psy-facet-macro-parse"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proc-macro2",
  "psy-facet-macro-types",
@@ -3247,7 +3247,7 @@ dependencies = [
 
 [[package]]
 name = "psy-facet-macro-types"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3256,14 +3256,14 @@ dependencies = [
 
 [[package]]
 name = "psy-facet-macros"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "psy-facet-macros-impl",
 ]
 
 [[package]]
 name = "psy-facet-macros-impl"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "proc-macro2",
  "psy-facet-macro-parse",
@@ -3275,14 +3275,14 @@ dependencies = [
 
 [[package]]
 name = "psy-facet-path"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "psy-facet-core",
 ]
 
 [[package]]
 name = "psy-facet-reflect"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "camino",
  "hashbrown 0.16.1",
@@ -3297,7 +3297,7 @@ dependencies = [
 
 [[package]]
 name = "psy-internal-baml-diagnostics"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "colored",
@@ -3308,7 +3308,7 @@ dependencies = [
 
 [[package]]
 name = "psy-internal-baml-jinja"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "indexmap",
@@ -3322,7 +3322,7 @@ dependencies = [
 
 [[package]]
 name = "psy-jsonish"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "getrandom 0.2.17",

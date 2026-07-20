@@ -3,7 +3,7 @@ autotests = false
 autobenches = false
 edition = "2021"
 name = "psy-baml-types"
-version = "0.1.0"
+version = "0.1.1"
 license = "Apache-2.0"
 description = "BAML type system and IR (Psyborgs hard-fork)"
 repository = "https://github.com/Psyborgs-git/dynamic-self-improving-rust"
@@ -28,7 +28,7 @@ type_complexity = "allow"
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.4.6", features = ["cargo", "derive"] }
-internal-baml-diagnostics = { package = "psy-internal-baml-diagnostics", version = "0.1.0", path = "../psy-internal-baml-diagnostics" }
+internal-baml-diagnostics = { package = "psy-internal-baml-diagnostics", version = "0.1.1", path = "../psy-internal-baml-diagnostics" }
 itertools = "0.14.0"
 minijinja = { version = "2.21.0", default-features = false, features = [
   "macros",
@@ -51,7 +51,7 @@ serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["float_roundtrip", "preserve_order"] }
 strum = { version = "0.26.2", features = ["derive"] }
 web-time = "1.1.0"
-baml-ids = { package = "psy-baml-ids", version = "0.1.0", path = "../psy-baml-ids" }
+baml-ids = { package = "psy-baml-ids", version = "0.1.1", path = "../psy-baml-ids" }
 
 [dependencies.indexmap]
 version = "2.1.0"

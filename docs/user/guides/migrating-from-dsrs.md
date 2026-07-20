@@ -15,7 +15,7 @@ If you used upstream [DSRs](https://github.com/krypticmouse/DSRs) (`dspy-rs` on 
 dsrs = { package = "dspy-rs", version = "0.7" }
 
 # After
-dsir = { path = "crates/dsir" }  # or crates.io when published
+dsir = "0.1.1"
 ```
 
 ## Model strings

@@ -22,6 +22,26 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           set -euo pipefail
+
+          wait_for_index() {
+            local crate="$1"
+            local version="$2"
+            local attempts=60
+            local i=1
+            echo "Waiting for ${crate}@${version} to appear on crates.io index..."
+            while [ "$i" -le "$attempts" ]; do
+              if cargo info --registry crates-io "${crate}@${version}" >/dev/null 2>&1; then
+                echo "Indexed: ${crate}@${version}"
+                return 0
+              fi
+              echo "  attempt ${i}/${attempts}: not visible yet; sleeping 10s"
+              sleep 10
+              i=$((i + 1))
+            done
+            echo "::error::Timed out waiting for ${crate}@${version} on crates.io index"
+            return 1
+          }
+
           crates=(
             psy-facet-macro-types
             psy-facet-macro-parse
@@ -49,5 +69,6 @@ jobs:
             else
               echo "Publishing ${crate}@${version}..."
               cargo publish -p "$crate" --token "$CARGO_REGISTRY_TOKEN"
+              wait_for_index "$crate" "$version"
             fi
           done

@@ -10,7 +10,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-dsir = { path = "crates/dsir" }  # or crates.io when published
+dsir = "0.1.1"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 ```
