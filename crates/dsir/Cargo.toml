@@ -1,7 +1,7 @@
 [package]
 name = "dsir"
 authors = ["dsir contributors"]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "DSPy-shaped library for programming language models in Rust."
 readme = "../../README.md"
@@ -23,10 +23,10 @@ tokio = { version = "1.46.1", features = ["full"] }
 async-trait = "0.1.83"
 anyhow = "1.0.99"
 bon = "3.7.0"
-bamltype = { version = "0.1.0", path = "../bamltype" }
-facet = { package = "psy-facet", version = "0.1.0", path = "../psy-facet", default-features = false, features = ["std"] }
+bamltype = { version = "0.1.1", path = "../bamltype" }
+facet = { package = "psy-facet", version = "0.1.1", path = "../psy-facet", default-features = false, features = ["std"] }
 thiserror = "2.0.17"
-dsir_macros = { version = "0.1.0", package = "dsir-macros", path = "../dsir-macros" }
+dsir_macros = { version = "0.1.1", package = "dsir-macros", path = "../dsir-macros" }
 csv = { version = "1.3.1" }
 hf-hub = { version = "0.4.3", features = ["tokio"] }
 parquet = { version = "56.1.0" }

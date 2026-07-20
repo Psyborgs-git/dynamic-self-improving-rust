@@ -2,7 +2,7 @@
 autotests = false
 autobenches = false
 name = "psy-facet-macros-impl"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.90"
 license = "MIT OR Apache-2.0"
@@ -24,8 +24,8 @@ doc = []
 helpful-derive = ["dep:strsim"]
 
 [dependencies]
-facet-macro-parse = { package = "psy-facet-macro-parse", version = "0.1.0", path = "../psy-facet-macro-parse" }
-facet-macro-types = { package = "psy-facet-macro-types", version = "0.1.0", path = "../psy-facet-macro-types" }
+facet-macro-parse = { package = "psy-facet-macro-parse", version = "0.1.1", path = "../psy-facet-macro-parse" }
+facet-macro-types = { package = "psy-facet-macro-types", version = "0.1.1", path = "../psy-facet-macro-types" }
 proc-macro2 = "1.0.95"
 quote = "1"
 strsim = { version = "0.11", optional = true }

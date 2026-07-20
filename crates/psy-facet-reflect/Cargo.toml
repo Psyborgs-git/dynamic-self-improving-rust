@@ -2,7 +2,7 @@
 autotests = false
 autobenches = false
 name = "psy-facet-reflect"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.90"
 license = "MIT OR Apache-2.0"
@@ -33,8 +33,8 @@ fn-ptr = ["facet-core/fn-ptr"]
 
 [dependencies]
 camino = { version = "1.2.1", optional = true }
-facet-core = { package = "psy-facet-core", version = "0.1.0", path = "../psy-facet-core", default-features = false }
-facet-path = { package = "psy-facet-path", version = "0.1.0", path = "../psy-facet-path", default-features = false }
+facet-core = { package = "psy-facet-core", version = "0.1.1", path = "../psy-facet-core", default-features = false }
+facet-path = { package = "psy-facet-path", version = "0.1.1", path = "../psy-facet-path", default-features = false }
 hashbrown = "0.16"
 smallvec = "2.0.0-alpha.12"
 regex = { version = "1", default-features = false, features = ["std"], optional = true }

@@ -2,7 +2,7 @@
 autotests = false
 autobenches = false
 name = "psy-facet-macros"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.90"
 license = "MIT OR Apache-2.0"
@@ -23,4 +23,4 @@ doc = ["facet-macros-impl/doc"]
 helpful-derive = ["facet-macros-impl/helpful-derive"]
 
 [dependencies]
-facet-macros-impl = { package = "psy-facet-macros-impl", version = "0.1.0", path = "../psy-facet-macros-impl", default-features = false }
+facet-macros-impl = { package = "psy-facet-macros-impl", version = "0.1.1", path = "../psy-facet-macros-impl", default-features = false }
