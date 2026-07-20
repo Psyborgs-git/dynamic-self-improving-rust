@@ -2,6 +2,14 @@ name: crates.io
 
 on:
   workflow_dispatch:
+  # Also publish on main when crate manifests or this workflow change.
+  # Existing versions are skipped; needed because cloud agents cannot
+  # workflow_dispatch with the installation token.
+  push:
+    branches: [main]
+    paths:
+      - 'crates/**/Cargo.toml'
+      - '.github/workflows/crates-io.yml'
 
 env:
   CARGO_TERM_COLOR: always
