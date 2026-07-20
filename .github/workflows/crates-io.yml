@@ -50,6 +50,49 @@ jobs:
             return 1
           }
 
+          publish_with_retry() {
+            local crate="$1"
+            local attempt=1
+            local max_attempts=20
+            local log
+            while [ "$attempt" -le "$max_attempts" ]; do
+              echo "Publish attempt ${attempt}/${max_attempts} for ${crate}..."
+              set +e
+              log="$(cargo publish -p "$crate" --token "$CARGO_REGISTRY_TOKEN" 2>&1)"
+              local status=$?
+              set -e
+              echo "$log"
+              if [ "$status" -eq 0 ]; then
+                return 0
+              fi
+              if echo "$log" | grep -q '429 Too Many Requests'; then
+                # Prefer the server's retry-after timestamp when present.
+                local until
+                until="$(echo "$log" | sed -n 's/.*try again after \([A-Za-z0-9,: ]*GMT\).*/\1/p' | head -1)"
+                if [ -n "$until" ]; then
+                  local now_epoch until_epoch sleep_s
+                  now_epoch="$(date -u +%s)"
+                  until_epoch="$(date -u -d "$until" +%s 2>/dev/null || echo 0)"
+                  if [ "$until_epoch" -gt "$now_epoch" ]; then
+                    sleep_s=$((until_epoch - now_epoch + 15))
+                  else
+                    sleep_s=120
+                  fi
+                else
+                  sleep_s=300
+                fi
+                echo "::warning::Rate limited publishing ${crate}; sleeping ${sleep_s}s then retrying"
+                sleep "$sleep_s"
+                attempt=$((attempt + 1))
+                continue
+              fi
+              echo "::error::cargo publish failed for ${crate}"
+              return "$status"
+            done
+            echo "::error::Exhausted retries publishing ${crate}"
+            return 1
+          }
+
           crates=(
             psy-facet-macro-types
             psy-facet-macro-parse
@@ -76,7 +119,10 @@ jobs:
               echo "::notice::Skipping ${crate} publish because version ${version} already exists."
             else
               echo "Publishing ${crate}@${version}..."
-              cargo publish -p "$crate" --token "$CARGO_REGISTRY_TOKEN"
+              publish_with_retry "$crate"
               wait_for_index "$crate" "$version"
+              # New-crate burst limit is tight; pace remaining first-time publishes.
+              echo "Pacing 90s before next new crate publish..."
+              sleep 90
             fi
           done
